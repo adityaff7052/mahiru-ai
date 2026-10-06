@@ -59,7 +59,7 @@ export function base64ToFloat32(b64: string): Float32Array {
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   const pcm = new Int16Array(bytes.buffer, 0, bytes.length >> 1);
   const out = new Float32Array(pcm.length);
-  for (let i = 0; i < pcm.length; i++) out[i] = pcm[i]! / 0x8000;
+  for (let i = 0; i < pcm.length; i++) out[i] = (pcm[i] ?? 0) / 0x8000;
   return out;
 }
 
@@ -142,6 +142,7 @@ export class PcmPlayer {
     this.sources.add(src);
     src.onended = () => {
       this.sources.delete(src);
+      src.disconnect();
       if (this.sources.size === 0) this.onDrain?.();
     };
   }
@@ -166,7 +167,7 @@ export class PcmPlayer {
     if (!this.playing) return 0;
     this.analyser.getFloatTimeDomainData(this.data);
     let sum = 0;
-    for (let i = 0; i < this.data.length; i++) sum += this.data[i]! * this.data[i]!;
+    for (const sample of this.data) sum += sample * sample;
     return Math.sqrt(sum / this.data.length);
   }
 

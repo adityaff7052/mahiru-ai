@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, RotateCw, Smartphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { hasRequiredMedia } from "@/lib/video-pipeline";
 import { AiriAvatar } from "@/components/AiriAvatar";
 import { useAiriLive } from "@/hooks/use-airi-live";
 
@@ -23,20 +25,46 @@ type Phase = "gate" | "requesting" | "denied" | "main";
 function Index() {
   const [phase, setPhase] = useState<Phase>("gate");
   const live = useAiriLive();
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const requesting = useRef(false);
+  const grantedStream = useRef<MediaStream | null>(null);
+  useEffect(() => () => {
+    grantedStream.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+  useEffect(() => {
+    const video = live.videoRef.current;
+    if (!video || !stream) return;
+    video.srcObject = stream;
+    void video.play().catch((error: unknown) => console.warn("[airi] Preview playback", error));
+    return () => { video.srcObject = null; };
+  }, [stream, live.videoRef]);
 
   // Mic is requested only here, from a user gesture (also unlocks audio playback).
   const requestMic = useCallback(async () => {
+    if (requesting.current) return;
+    requesting.current = true;
     setPhase("requesting");
+    let media: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      media = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 360 } },
       });
-      setPhase("main");
-      await live.start(stream);
+      if (!hasRequiredMedia(media)) {
+        media.getTracks().forEach((track) => track.stop());
+        throw new Error("Both microphone and camera are required.");
+      }
     } catch {
+      requesting.current = false;
       setPhase("denied");
+      return;
     }
-  }, [live]);
+    grantedStream.current = media;
+    setStream(media);
+    setPhase("main");
+    requesting.current = false;
+    await live.start(media);
+  }, [live.start]);
 
   if (phase !== "main") {
     return (
@@ -44,17 +72,17 @@ function Index() {
         <div className="gate">
           {phase === "denied" ? (
             <>
-              <p className="gate-text">Microphone access is needed to talk with Airi.</p>
-              <button className="gate-btn" onClick={requestMic}>
+              <p className="gate-text">Microphone and camera access are needed to talk with Airi.</p>
+              <Button variant="ghost" className="gate-btn" onClick={requestMic}>
                 <RotateCw className="size-4" /> Try again
-              </button>
+              </Button>
             </>
           ) : (
-            <button className="gate-mic" onClick={requestMic} disabled={phase === "requesting"} aria-label="Enable microphone">
+            <Button variant="ghost" className="gate-mic" onClick={requestMic} disabled={phase === "requesting"} aria-label="Enable microphone and camera">
               <Mic className="size-7" />
-            </button>
+            </Button>
           )}
-          {phase !== "denied" && <p className="gate-hint">Tap to enable microphone</p>}
+          {phase !== "denied" && <p className="gate-hint">Tap to enable microphone and camera</p>}
         </div>
       </main>
     );
@@ -72,10 +100,11 @@ function Index() {
         getOutputLevel={live.getOutputLevel}
         getInputLevel={live.getInputLevel}
       />
+      <video ref={live.videoRef} className="camera-preview" autoPlay muted playsInline aria-label="Your live camera preview" />
       {live.state === "error" ? (
-        <button className="status-retry" onClick={live.retry} aria-label="Reconnect">
+        <Button variant="ghost" className="status-retry" onClick={live.retry} aria-label="Reconnect" title={live.error}>
           <RotateCw className="size-4" />
-        </button>
+        </Button>
       ) : (
         <span className="status-dot" data-state={live.state} role="status" aria-label={live.state} />
       )}
