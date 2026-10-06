@@ -12,7 +12,7 @@ import { mintLiveToken } from "@/lib/live-token.functions";
 
 export type AiriState = "idle" | "connecting" | "listening" | "thinking" | "speaking" | "interrupted" | "error";
 
-const MOCK = import.meta.env.VITE_AIRI_MOCK === "true";
+const MOCK = import.meta.env["VITE_AIRI_MOCK"] === "true";
 const MAX_RETRIES = 5;
 
 export function useAiriLive() {
@@ -95,7 +95,7 @@ export function useAiriLive() {
         model: LIVE_MODEL,
         config: {
           ...(buildLiveConfig(Modality) as object),
-          sessionResumption: { handle: handleRef.current },
+          sessionResumption: handleRef.current ? { handle: handleRef.current } : {},
         },
         callbacks: {
           onopen: () => {
@@ -156,7 +156,7 @@ export function useAiriLive() {
             set("thinking");
             setEmotion("thinking");
             const t = window.setTimeout(() => {
-              setEmotion(emotions[Math.floor(Math.random() * emotions.length)]);
+              setEmotion(emotions[Math.floor(Math.random() * emotions.length)] ?? "happy");
               turnDoneRef.current = true;
               playerRef.current?.enqueue(synthSpeech(2 + Math.random() * 2.5));
               set("speaking");

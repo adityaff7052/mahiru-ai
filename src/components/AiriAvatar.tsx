@@ -82,11 +82,11 @@ export function AiriAvatar({ state, emotion, getOutputLevel, getInputLevel }: Pr
       head.setAttribute("transform", `translate(0 ${breathe * 2 - listenReact * 2}) rotate(${headRot} 200 270)`);
 
       const ey = Math.max(0.05, cur.eye * lid);
-      eyes[0].setAttribute("transform", `translate(0 195) scale(1 ${ey}) translate(0 -195)`);
-      eyes[1].setAttribute("transform", `translate(0 195) scale(1 ${ey}) translate(0 -195)`);
+      eyes[0]!.setAttribute("transform", `translate(0 195) scale(1 ${ey}) translate(0 -195)`);
+      eyes[1]!.setAttribute("transform", `translate(0 195) scale(1 ${ey}) translate(0 -195)`);
       const b = 160 - cur.brow;
-      brows[0].setAttribute("d", `M154 ${b + cur.tilt * 0.6} Q170 ${b - 6} 186 ${b - cur.tilt * 0.4}`);
-      brows[1].setAttribute("d", `M214 ${b - cur.tilt * 0.4} Q230 ${b - 6} 246 ${b + cur.tilt * 0.6}`);
+      brows[0]!.setAttribute("d", `M154 ${b + cur.tilt * 0.6} Q170 ${b - 6} 186 ${b - cur.tilt * 0.4}`);
+      brows[1]!.setAttribute("d", `M214 ${b - cur.tilt * 0.4} Q230 ${b - 6} 246 ${b + cur.tilt * 0.6}`);
 
       const s = cur.smile * 5;
       const o = mouthOpen * 13;
@@ -100,7 +100,7 @@ export function AiriAvatar({ state, emotion, getOutputLevel, getInputLevel }: Pr
 
       sway += ((speaking ? 1 + mouthOpen : 0.45) - sway) * 0.04;
       strands.forEach((el, i) => {
-        const [x, y] = el.dataset.strand!.split(",").map(Number);
+        const [x, y] = el.dataset["strand"]!.split(",").map(Number);
         const a = Math.sin(t * (1.3 + i * 0.17) + i * 1.7) * 2.2 * sway;
         el.setAttribute("transform", `rotate(${a} ${x} ${y})`);
       });
