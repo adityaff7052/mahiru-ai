@@ -10,7 +10,7 @@ export const mintLiveToken = createServerFn({ method: "POST" }).handler(async ()
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured on the server.");
 
   const { GoogleGenAI, Modality } = await import("@google/genai");
-  const ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: "v1alpha" } });
+  const ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: "v1beta" } });
   const now = Date.now();
 
   const token = await ai.authTokens.create({
@@ -23,7 +23,7 @@ export const mintLiveToken = createServerFn({ method: "POST" }).handler(async ()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         config: buildLiveConfig(Modality) as any,
       },
-      httpOptions: { apiVersion: "v1alpha" },
+      httpOptions: { apiVersion: "v1beta" },
     },
   });
 
