@@ -131,15 +131,15 @@ export function AiriAvatar({ state, emotion, getOutputLevel, getInputLevel }: Pr
       <g data-part="body">
         {/* back hair */}
         <g data-strand="200,90">
-          <path d="M118 165 Q104 70 200 60 Q296 70 282 165 Q296 290 318 410 Q260 400 240 330 L160 330 Q140 400 82 410 Q104 290 118 165Z" fill="url(#hair)" />
+          <path d="M118 165 Q104 70 200 60 Q296 70 282 165 Q296 290 318 410 L82 410 Q104 290 118 165Z" fill="url(#hair)" />
         </g>
-        {/* neck + shoulders */}
-        <path d="M184 268 L216 268 L218 330 L182 330Z" fill="var(--airi-skin-shade)" />
+        <g transform="translate(0 -28)">
+        <path d="M184 290 L216 290 L218 340 L182 340Z" fill="var(--airi-skin-shade)" />
         <path d="M70 500 Q76 365 200 335 Q324 365 330 500Z" fill="var(--airi-cloth)" />
         <path d="M150 348 L200 400 L250 348 Q225 340 200 338 Q175 340 150 348Z" fill="var(--airi-skin)" />
         <path d="M150 348 L200 400 L250 348 L262 356 L200 420 L138 356Z" fill="var(--airi-cloth-trim)" />
         <path d="M193 402 L207 402 L212 430 L200 440 L188 430Z" fill="var(--airi-accent)" />
-        <path d="M70 500 Q76 365 200 335 Q324 365 330 500Z" fill="url(#rim)" />
+        <path d="M70 500 Q76 365 200 335 Q324 365 330 500Z" fill="url(#rim)" /><path d="M70 500 L330 500 L330 530 L70 530Z" fill="var(--airi-cloth)" /></g>
 
         <g data-part="head">
           {/* face */}
