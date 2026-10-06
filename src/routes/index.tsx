@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
-import { Mic, RotateCw } from "lucide-react";
+import { Mic, RotateCw, Smartphone } from "lucide-react";
 import { AiriAvatar } from "@/components/AiriAvatar";
 import { useAiriLive } from "@/hooks/use-airi-live";
 
@@ -62,6 +62,10 @@ function Index() {
 
   return (
     <main className="stage">
+      {/* Shown only on portrait phones (CSS); the voice session keeps running underneath. */}
+      <div className="rotate-prompt" role="status" aria-label="Rotate your phone to landscape">
+        <Smartphone className="rotate-icon" strokeWidth={1.25} />
+      </div>
       <AiriAvatar
         state={live.state}
         emotion={live.emotion}
