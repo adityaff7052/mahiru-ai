@@ -1,29 +1,21 @@
-# Welcome to your Lovable project
+# Airi — voice-first AI companion
 
-This project was built with [Lovable](https://lovable.dev).
+Full-screen black stage, an animated anime companion, and nothing else. You talk; she talks back (Gemini Live, `gemini-3.1-flash-live-preview`, audio-to-audio).
 
-## Build with Lovable
+## Environment variables
+| Name | Where | Purpose |
+|---|---|---|
+| `GEMINI_API_KEY` | server secret (Project Settings → Secrets) | Used only on the server to mint single-use ephemeral Live tokens. |
+| `VITE_AIRI_MOCK` | build env (`.env.local`) | `true` = mock mode: no Gemini calls, synthetic voice replies for UI testing. |
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+## Local dev
 ```
+bun install
+echo "GEMINI_API_KEY=your_key" > .env   # server-side only
+# optional: echo "VITE_AIRI_MOCK=true" > .env.local
+bun run dev   # http://localhost:8080
+```
+Microphone access requires a secure origin (https or localhost). `file://` will not work. For a desktop app, wrap the served app with Electron/Tauri pointing at localhost or a bundled server.
 
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+## Pipeline
+Mic → AudioWorklet (downsample to 16 kHz Int16, 40 ms chunks) → Live session (ephemeral token) → 24 kHz PCM → gapless queue → analyser (mouth). On `interrupted` the queue is flushed instantly. Session resumption handles + backoff reconnect recover from drops. Gemini usage is billed to your API key per Google's pricing.
