@@ -1,4 +1,5 @@
-# Airi updates
+# Mahiru updates
+- [ ] Rename product and all user-facing labels to Mahiru.
 - [ ] Rework animated SVG avatar and landscape composition.
 - [ ] Combined media permission gate and private camera preview.
 - [ ] JPEG camera frames and reliable Live lifecycle/error handling.
