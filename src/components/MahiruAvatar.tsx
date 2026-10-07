@@ -3,7 +3,7 @@
  * (mouth, eyelids, brows, hair strands) can be animated per-frame from audio.
  * Animation runs in a rAF loop writing attributes directly (no React re-renders).
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { MahiruEmotion } from "@/lib/mahiru-config";
 import type { MahiruState } from "@/hooks/use-mahiru-live";
 
@@ -17,6 +17,7 @@ interface Props {
 }
 
 export function MahiruAvatar({ state, emotion, getOutputLevel, getInputLevel }: Props) {
+  const id = useId().replace(/:/g, "");
   const root = useRef<SVGSVGElement>(null);
   const live = useRef({ state, emotion });
   live.current = { state, emotion };
@@ -33,6 +34,8 @@ export function MahiruAvatar({ state, emotion, getOutputLevel, getInputLevel }: 
     const mouth = q<SVGPathElement>("mouth");
     const blush = q<SVGGElement>("blush");
     const tears = q<SVGGElement>("tears");
+    const mouthDetail = q<SVGGElement>("mouth-detail");
+    const closedEyes = q<SVGGElement>("closed-eyes");
     if (!head || !body || !eyes[0] || !eyes[1] || !brows[0] || !brows[1] || !lip || !mouth || !blush) return;
     const gaze = Array.from(svg.querySelectorAll<SVGGElement>("[data-gaze]"));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -61,7 +64,7 @@ export function MahiruAvatar({ state, emotion, getOutputLevel, getInputLevel }: 
       const speaking = st === "speaking";
       const amp = speaking ? Math.min(1, getOutputLevel() * 7) : 0;
       if (!speaking) mouthOpen = 0;
-      else mouthOpen += (amp - mouthOpen) * (amp > mouthOpen ? 0.55 : 0.3);
+      else mouthOpen += (amp - mouthOpen) * (1 - Math.exp(-dt / (amp > mouthOpen ? 28 : 65)));
       const listenReact = st === "listening" ? Math.min(1, getInputLevel() * 10) : 0;
 
       // Blink with randomized cadence.
@@ -86,9 +89,11 @@ export function MahiruAvatar({ state, emotion, getOutputLevel, getInputLevel }: 
       const ey = Math.max(0.05, cur.eye * lid);
       eyes[0]?.setAttribute("transform", `translate(0 195) scale(1 ${ey}) translate(0 -195)`);
       eyes[1]?.setAttribute("transform", `translate(0 195) scale(1 ${ey}) translate(0 -195)`);
+      closedEyes?.setAttribute("opacity", String(Math.max(0, 1 - ey * 4)));
       const b = 160 - cur.brow;
       brows[0]?.setAttribute("d", `M154 ${b + cur.tilt * 0.6} Q170 ${b - 6} 186 ${b - cur.tilt * 0.4}`);
-      brows[1]?.setAttribute("d", `M214 ${b - cur.tilt * 0.4} Q230 ${b - 6} 246 ${b + cur.tilt * 0.6}`);
+      const puzzled = em === "confused" ? 3 : 0;
+      brows[1]?.setAttribute("d", `M214 ${b - cur.tilt * 0.4 - puzzled} Q230 ${b - 6 - puzzled} 246 ${b + cur.tilt * 0.6 - puzzled}`);
 
       const s = cur.smile * 5;
       const o = mouthOpen * 15;
@@ -98,10 +103,12 @@ export function MahiruAvatar({ state, emotion, getOutputLevel, getInputLevel }: 
         `M190 ${250 - s * 0.3} Q200 ${250 + s * 0.6 - 1} 210 ${250 - s * 0.3} Q200 ${252 + o + s} 190 ${250 - s * 0.3}Z`,
       );
       mouth.setAttribute("opacity", String(Math.min(1, mouthOpen * 4)));
+      mouthDetail?.setAttribute("opacity", String(Math.min(1, mouthOpen * 3)));
+      mouthDetail?.setAttribute("transform", `translate(0 ${s * .3})`);
       blush.setAttribute("opacity", String(cur.blush));
       tears?.setAttribute("opacity", String(cur.tears));
 
-      sway += ((speaking ? 1 + mouthOpen : 0.45) - sway) * 0.04;
+      sway += ((speaking ? 1 + mouthOpen : 0.45) - sway) * (1 - Math.exp(-dt / 350));
       strands.forEach((el, i) => {
         const [x, y] = (el.dataset["strand"] ?? "200,90").split(",").map(Number);
         const a = Math.sin(t * (1.3 + i * 0.17) + i * 1.7) * 2.2 * sway;
@@ -135,6 +142,18 @@ export function MahiruAvatar({ state, emotion, getOutputLevel, getInputLevel }: 
         <radialGradient id="cheek">
           <stop stopColor="var(--mahiru-blush)" stopOpacity=".65" /><stop offset="1" stopColor="var(--mahiru-blush)" stopOpacity="0" />
         </radialGradient>
+        {[170, 230].map((cx) => <clipPath id={`${id}-eye-${cx}`} key={cx}>
+          <path d={`M${cx - 21} 190 Q${cx} 175 ${cx + 21} 190 Q${cx + 15} 217 ${cx} 216 Q${cx - 16} 217 ${cx - 21} 190Z`} />
+        </clipPath>)}
+        <linearGradient id="hair-ribbon" x1="0" y1="0" x2="1" y2="0">
+          <stop stopColor="var(--mahiru-hair-light)" stopOpacity="0" />
+          <stop offset=".5" stopColor="var(--mahiru-hair-light)" stopOpacity=".7" />
+          <stop offset="1" stopColor="var(--mahiru-hair-light)" stopOpacity="0" />
+        </linearGradient>
+        <radialGradient id="hoodie-soft" cx=".45" cy=".15" r=".95">
+          <stop stopColor="var(--mahiru-cloth-trim)" stopOpacity=".3" />
+          <stop offset="1" stopColor="var(--mahiru-cloth-shade)" stopOpacity=".6" />
+        </radialGradient>
       </defs>
       <g data-part="body">
         <g data-strand="200,90">
@@ -144,6 +163,9 @@ export function MahiruAvatar({ state, emotion, getOutputLevel, getInputLevel }: 
         <path d="M178 269 L222 269 L226 310 Q200 334 174 310Z" fill="var(--mahiru-skin-shade)" />
         <path d="M133 313 Q146 288 175 296 L200 318 L225 296 Q254 288 267 313 L288 360 L112 360Z" fill="var(--mahiru-cloth-shade)" stroke="var(--mahiru-cloth-trim)" />
         <path d="M39 475 Q44 379 99 342 Q127 317 154 318 L200 339 L246 318 Q273 317 301 342 Q356 379 361 475Z" fill="url(#hoodie)" stroke="var(--mahiru-cloth-trim)" strokeWidth="1.5" />
+        <path d="M39 475 Q44 379 99 342 Q127 317 154 318 L200 339 L246 318 Q273 317 301 342 Q356 379 361 475Z" fill="url(#hoodie-soft)" />
+        <path d="M99 343 Q77 372 73 400 M301 343 Q323 372 327 400 M151 367 Q166 376 174 382 M249 367 Q234 376 226 382 M110 428 Q123 436 132 452 M290 428 Q277 436 268 452" fill="none" stroke="var(--mahiru-cloth-shade)" strokeWidth="3" strokeLinecap="round" />
+        <path d="M48 471 Q55 395 95 356 M352 471 Q345 395 305 356" fill="none" stroke="var(--mahiru-cloth-trim)" strokeWidth=".8" opacity=".55" />
         <path d="M137 307 Q120 331 164 356 L198 340 Q173 321 173 302 M263 307 Q280 331 236 356 L202 340 Q227 321 227 302" fill="var(--mahiru-cloth-trim)" stroke="var(--mahiru-cloth-shade)" strokeWidth="2" />
         <path d="M172 306 Q200 331 228 306" fill="none" stroke="var(--mahiru-jewelry)" strokeWidth="1.2" />
         <path d="M197 321 L203 321 L202 329 L198 329Z" fill="var(--mahiru-jewelry)" />
@@ -161,25 +183,33 @@ export function MahiruAvatar({ state, emotion, getOutputLevel, getInputLevel }: 
           {[170, 230].map((cx, i) => (
             <g key={cx} data-part={i ? "eyeR" : "eyeL"}>
               <path d={`M${cx - 21} 190 Q${cx} 175 ${cx + 21} 190 Q${cx + 15} 217 ${cx} 216 Q${cx - 16} 217 ${cx - 21} 190Z`} fill="var(--mahiru-eye-white)" />
-              <g data-gaze>
+              <g clipPath={`url(#${id}-eye-${cx})`}><g data-gaze>
                 <ellipse cx={cx} cy="198" rx="12.8" ry="17.5" fill="url(#iris)" />
+                <ellipse cx={cx} cy="198" rx="12.8" ry="17.5" fill="none" stroke="var(--mahiru-iris)" strokeWidth=".8" />
+                {[-8, -4, 0, 4, 8].map((dx) => <path key={dx} d={`M${cx + dx} 207 l${dx * .25} 5`} stroke="var(--mahiru-iris-light)" strokeWidth=".7" opacity=".65" />)}
                 <ellipse cx={cx} cy="196" rx="5" ry="10" fill="var(--mahiru-pupil)" />
                 <path d={`M${cx - 9} 207 Q${cx} 217 ${cx + 9} 207`} fill="none" stroke="var(--mahiru-iris-light)" strokeWidth="2" />
                 <ellipse cx={cx - 4} cy="188" rx="3.7" ry="5" fill="var(--mahiru-eye-white)" />
                 <circle cx={cx + 6} cy="202" r="2.2" fill="var(--mahiru-eye-white)" />
                 <circle cx={cx - 4} cy="210" r="1" fill="var(--mahiru-eye-white)" />
-              </g>
+              </g></g>
               <path d={`M${cx - 22} 190 Q${cx} 172 ${cx + 22} 190 Q${cx} 180 ${cx - 22} 193Z`} fill="var(--mahiru-line)" />
               <path d={i ? "M250 189 l6 -6 M249 187 l3 -6" : "M150 189 l-6 -6 M151 187 l-3 -6"} stroke="var(--mahiru-line)" strokeWidth="2" strokeLinecap="round" />
               <path d={`M${cx - 16} 211 Q${cx} 220 ${cx + 16} 211`} fill="none" stroke="var(--mahiru-skin-shade)" strokeWidth="1" />
             </g>
           ))}
+          <g data-part="closed-eyes" opacity="0" fill="none" stroke="var(--mahiru-line)" strokeWidth="2" strokeLinecap="round">
+            <path d="M149 195 Q170 204 191 195 M209 195 Q230 204 251 195" />
+          </g>
           <g data-part="tears" opacity="0">
             <path d="M153 213 Q148 238 153 244 Q159 238 153 213 M247 213 Q242 238 247 244 Q253 238 247 213" fill="var(--mahiru-tear)" opacity=".7" />
             <path d="M149 214 Q170 221 188 213 M212 213 Q230 221 251 214" fill="none" stroke="var(--mahiru-tear)" strokeWidth="2" />
           </g>
           <path d="M201 219 Q198 225 202 227" fill="none" stroke="var(--mahiru-skin-shade)" strokeWidth="1.2" strokeLinecap="round" />
           <path data-part="mouth" d="" fill="var(--mahiru-mouth)" />
+          <g data-part="mouth-detail" opacity="0">
+            <path d="M194 251 Q200 253 206 251 L205 253 Q200 255 195 253Z" fill="var(--mahiru-eye-white)" opacity=".8" />
+          </g>
           <path data-part="lip" d="" stroke="var(--mahiru-line)" strokeWidth="1.4" fill="none" strokeLinecap="round" />
           <path d="M194 263 Q200 265 206 263" fill="none" stroke="var(--mahiru-skin-shade)" strokeWidth=".8" opacity=".5" />
           <path data-part="browL" d="" stroke="var(--mahiru-hair)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
@@ -193,10 +223,22 @@ export function MahiruAvatar({ state, emotion, getOutputLevel, getInputLevel }: 
           <g data-strand="139,110">
             <path d="M139 108 Q103 159 110 243 Q95 315 122 389 Q129 427 107 459 Q143 442 145 397 Q137 337 145 299 Q128 236 148 181Z" fill="url(#hair)" stroke="var(--mahiru-hair-light)" strokeWidth=".7" />
             <path d="M132 158 Q117 213 131 266 Q116 335 135 391" fill="none" stroke="var(--mahiru-hair-light)" strokeWidth="1.2" opacity=".55" />
+            <path d="M123 171 Q109 220 125 273 Q113 351 130 403 Q133 431 118 447" fill="none" stroke="var(--mahiru-hair-light)" strokeWidth=".55" opacity=".45" />
+            <path d="M137 198 Q126 237 137 269 Q122 329 136 365 L131 382 Q117 333 128 270 Q117 231 132 198Z" fill="url(#hair-ribbon)" opacity=".5" />
           </g>
           <g data-strand="261,110">
             <path d="M261 108 Q297 159 290 243 Q305 315 278 389 Q271 427 293 459 Q257 442 255 397 Q263 337 255 299 Q272 236 252 181Z" fill="url(#hair)" stroke="var(--mahiru-hair-light)" strokeWidth=".7" />
             <path d="M268 158 Q283 213 269 266 Q284 335 265 391" fill="none" stroke="var(--mahiru-hair-light)" strokeWidth="1.2" opacity=".55" />
+            <path d="M277 171 Q291 220 275 273 Q287 351 270 403 Q267 431 282 447" fill="none" stroke="var(--mahiru-hair-light)" strokeWidth=".55" opacity=".45" />
+            <path d="M263 198 Q274 237 263 269 Q278 329 264 365 L269 382 Q283 333 272 270 Q283 231 268 198Z" fill="url(#hair-ribbon)" opacity=".5" />
+          </g>
+          <g data-strand="128,123" fill="none" stroke="var(--mahiru-hair-light)" strokeWidth=".65" opacity=".65">
+            <path d="M126 126 Q97 218 111 285 Q91 358 113 421" />
+            <path d="M119 158 Q96 231 107 283" />
+          </g>
+          <g data-strand="272,123" fill="none" stroke="var(--mahiru-hair-light)" strokeWidth=".65" opacity=".65">
+            <path d="M274 126 Q303 218 289 285 Q309 358 287 421" />
+            <path d="M281 158 Q304 231 293 283" />
           </g>
           <path d="M139 93 Q151 52 185 49 M221 47 Q258 56 267 94" fill="none" stroke="var(--mahiru-hair-light)" strokeWidth="1.5" opacity=".5" />
           <path d="M199 30 Q184 16 174 24 Q190 17 203 32" fill="none" stroke="var(--mahiru-hair-light)" strokeWidth="2" />
