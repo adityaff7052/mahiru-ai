@@ -2,18 +2,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LiveServerMessage, Session } from "@google/genai";
 import { MicCapture, PcmPlayer, base64ToFloat32, int16ToBase64, synthSpeech } from "@/lib/audio/pipeline";
-import { LIVE_MODEL, buildLiveConfig, inferEmotion, type AiriEmotion } from "@/lib/airi-config";
+import { LIVE_MODEL, LIVE_API_VERSION, buildLiveConfig, inferEmotion, type MahiruEmotion } from "@/lib/mahiru-config";
 import { mintLiveToken } from "@/lib/live-token.functions";
 import { startVideoFrames } from "@/lib/video-pipeline";
 
-export type AiriState = "idle" | "connecting" | "listening" | "thinking" | "speaking" | "interrupted" | "error";
-const MOCK = import.meta.env["VITE_AIRI_MOCK"] === "true";
+export type MahiruState = "idle" | "connecting" | "listening" | "thinking" | "speaking" | "interrupted" | "error";
+const MOCK = import.meta.env["VITE_MAHIRU_MOCK"] === "true";
 
-export function useAiriLive() {
-  const [state, setState] = useState<AiriState>("idle");
-  const [emotion, setEmotion] = useState<AiriEmotion>("neutral");
+export function useMahiruLive() {
+  const [state, setState] = useState<MahiruState>("idle");
+  const [emotion, setEmotion] = useState<MahiruEmotion>("neutral");
   const [error, setError] = useState("");
-  const stateRef = useRef<AiriState>("idle");
+  const stateRef = useRef<MahiruState>("idle");
   const ctxRef = useRef<AudioContext | null>(null);
   const micRef = useRef<MicCapture | null>(null);
   const playerRef = useRef<PcmPlayer | null>(null);
@@ -30,11 +30,13 @@ export function useAiriLive() {
   const timersRef = useRef<number[]>([]);
   const stopFramesRef = useRef<(() => void) | null>(null);
 
-  const set = useCallback((s: AiriState) => { stateRef.current = s; setState(s); }, []);
+  const set = useCallback((s: MahiruState) => { stateRef.current = s; setState(s); }, []);
   const fail = useCallback((boundary: string, reason: unknown) => {
     const message = reason instanceof Error ? reason.message : String(reason);
-    console.error(`[airi] ${boundary}: ${message}`);
+    console.error(`[mahiru] ${boundary}: ${message}`);
     setError(`${boundary}: ${message}`);
+    stopFramesRef.current?.(); stopFramesRef.current = null;
+    playerRef.current?.flush();
     set("error");
   }, [set]);
   const interrupt = useCallback(() => {
@@ -89,19 +91,23 @@ export function useAiriLive() {
     stopFramesRef.current?.(); stopFramesRef.current = null;
     sessionRef.current = null;
     let opened = false;
+    let ready = false;
     let ended = false;
     try {
       const { GoogleGenAI, Modality } = await import("@google/genai");
       const { token } = await mintLiveToken();
       if (closingRef.current || generation !== generationRef.current) return;
-      const ai = new GoogleGenAI({ apiKey: token, httpOptions: { apiVersion: "v1beta" } });
+      const ai = new GoogleGenAI({ apiKey: token, httpOptions: { apiVersion: LIVE_API_VERSION } });
       const session = await ai.live.connect({
         model: LIVE_MODEL,
         config: { ...buildLiveConfig(Modality), sessionResumption: handleRef.current ? { handle: handleRef.current } : {} },
         callbacks: {
           onopen: () => { opened = true; },
           onmessage: (message) => {
-            if (generation === generationRef.current && !closingRef.current) handleMessage(message);
+            if (generation === generationRef.current && !closingRef.current) {
+              if (message.setupComplete) ready = true;
+              handleMessage(message);
+            }
           },
           onerror: (event) => {
             if (generation !== generationRef.current || closingRef.current) return;
@@ -118,7 +124,7 @@ export function useAiriLive() {
             playerRef.current?.flush();
             if (ended) return;
             ended = true;
-            console.warn(`[airi] Live closed (${event.code}): ${event.reason || "No reason supplied"}`);
+            console.warn(`[mahiru] Live closed (${event.code}): ${event.reason || "No reason supplied"}`);
             // Retry only transport loss / scheduled session expiry, never auth or policy failures.
             if (opened && [1000, 1001, 1006, 1011, 1012, 1013].includes(event.code) && retriesRef.current < 3) {
               const delay = 1000 * 2 ** retriesRef.current++;
@@ -128,12 +134,12 @@ export function useAiriLive() {
           },
         },
       });
-      if (closingRef.current || generation !== generationRef.current || ended || !opened) { session.close(); return; }
+      if (closingRef.current || generation !== generationRef.current || ended || !opened || !ready) { session.close(); return; }
       sessionRef.current = session;
       suppressOutputRef.current = false;
       stopFramesRef.current = startVideoFrames(session, () => videoRef.current, (reason) => fail("Camera frame", reason));
       set("listening");
-      if (!handleRef.current) session.sendClientContent({ turns: [{ role: "user", parts: [{ text: "Greet me briefly and ask how I am doing." }] }], turnComplete: true });
+      if (!handleRef.current) session.sendRealtimeInput({ text: "Greet me briefly and ask how I am doing." });
     } catch (reason) {
       if (!closingRef.current && generation === generationRef.current) fail("Live startup", reason);
     }
@@ -155,6 +161,7 @@ export function useAiriLive() {
 
   const start = useCallback(async (stream: MediaStream) => {
     stop(); closingRef.current = false; streamRef.current = stream;
+    setError(""); set("connecting");
     retriesRef.current = 0; turnDoneRef.current = true; suppressOutputRef.current = false;
     try {
       const ctx = new AudioContext({ latencyHint: "interactive" }); ctxRef.current = ctx;
@@ -164,7 +171,7 @@ export function useAiriLive() {
       player.onDrain = () => { if (turnDoneRef.current && stateRef.current === "speaking") set("listening"); };
       const mic = new MicCapture(ctx, stream); micRef.current = mic;
       await mic.start((pcm) => {
-        if (closingRef.current) return;
+        if (closingRef.current || stateRef.current === "error") return;
         // Capture chunks are dropped until connect resolves with an open session.
         const session = sessionRef.current;
         if (!session && !MOCK) return;

@@ -3,16 +3,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, RotateCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { hasRequiredMedia } from "@/lib/video-pipeline";
-import { AiriAvatar } from "@/components/AiriAvatar";
-import { useAiriLive } from "@/hooks/use-airi-live";
+import { MahiruAvatar } from "@/components/MahiruAvatar";
+import { useMahiruLive } from "@/hooks/use-mahiru-live";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Airi — Voice Companion" },
-      { name: "description", content: "Talk with Airi, a witty anime-style AI companion. Voice only." },
-      { property: "og:title", content: "Airi — Voice Companion" },
-      { property: "og:description", content: "Talk with Airi, a witty anime-style AI companion. Voice only." },
+      { title: "Mahiru — Voice Companion" },
+      { name: "description", content: "Talk with Mahiru, a witty anime-style AI companion. Voice only." },
+      { property: "og:title", content: "Mahiru — Voice Companion" },
+      { property: "og:description", content: "Talk with Mahiru, a witty anime-style AI companion. Voice only." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -24,7 +24,7 @@ type Phase = "gate" | "requesting" | "denied" | "main";
 
 function Index() {
   const [phase, setPhase] = useState<Phase>("gate");
-  const live = useAiriLive();
+  const live = useMahiruLive();
   const [stream, setStream] = useState<MediaStream | null>(null);
   const requesting = useRef(false);
   const grantedStream = useRef<MediaStream | null>(null);
@@ -35,7 +35,7 @@ function Index() {
     const video = live.videoRef.current;
     if (!video || !stream) return;
     video.srcObject = stream;
-    void video.play().catch((error: unknown) => console.warn("[airi] Preview playback", error));
+    void video.play().catch((error: unknown) => console.warn("[mahiru] Preview playback", error));
     return () => { video.srcObject = null; };
   }, [stream, live.videoRef]);
 
@@ -72,7 +72,7 @@ function Index() {
         <div className="gate">
           {phase === "denied" ? (
             <>
-              <p className="gate-text">Microphone and camera access are needed to talk with Airi.</p>
+              <p className="gate-text">Microphone and camera access are needed to talk with Mahiru.</p>
               <Button variant="ghost" className="gate-btn" onClick={requestMic}>
                 <RotateCw className="size-4" /> Try again
               </Button>
@@ -94,7 +94,7 @@ function Index() {
       <div className="rotate-prompt" role="status" aria-label="Rotate your phone to landscape">
         <Smartphone className="rotate-icon" strokeWidth={1.25} />
       </div>
-      <AiriAvatar
+      <MahiruAvatar
         state={live.state}
         emotion={live.emotion}
         getOutputLevel={live.getOutputLevel}

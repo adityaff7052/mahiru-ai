@@ -4,11 +4,11 @@
  * Animation runs in a rAF loop writing attributes directly (no React re-renders).
  */
 import { useEffect, useRef } from "react";
-import type { AiriEmotion } from "@/lib/airi-config";
-import type { AiriState } from "@/hooks/use-airi-live";
+import type { MahiruEmotion } from "@/lib/mahiru-config";
+import type { MahiruState } from "@/hooks/use-mahiru-live";
 
 type Params = { brow: number; tilt: number; smile: number; eye: number; blush: number; head: number };
-const EMO: Record<AiriEmotion, Params> = {
+const EMO: Record<MahiruEmotion, Params> = {
   neutral: { brow: 0, tilt: 0, smile: 0.25, eye: 1, blush: 0.25, head: 0 },
   happy: { brow: 2, tilt: 0, smile: 1, eye: 0.82, blush: 0.55, head: 2 },
   surprised: { brow: 6, tilt: 0, smile: -0.1, eye: 1.15, blush: 0.3, head: 0 },
@@ -18,13 +18,13 @@ const EMO: Record<AiriEmotion, Params> = {
 };
 
 interface Props {
-  state: AiriState;
-  emotion: AiriEmotion;
+  state: MahiruState;
+  emotion: MahiruEmotion;
   getOutputLevel: () => number;
   getInputLevel: () => number;
 }
 
-export function AiriAvatar({ state, emotion, getOutputLevel, getInputLevel }: Props) {
+export function MahiruAvatar({ state, emotion, getOutputLevel, getInputLevel }: Props) {
   const root = useRef<SVGSVGElement>(null);
   const live = useRef({ state, emotion });
   live.current = { state, emotion };
@@ -41,6 +41,8 @@ export function AiriAvatar({ state, emotion, getOutputLevel, getInputLevel }: Pr
     const mouth = q<SVGPathElement>("mouth");
     const blush = q<SVGGElement>("blush");
     if (!head || !body || !eyes[0] || !eyes[1] || !brows[0] || !brows[1] || !lip || !mouth || !blush) return;
+    const gaze = Array.from(svg.querySelectorAll<SVGGElement>("[data-gaze]"));
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const strands = Array.from(svg.querySelectorAll<SVGGElement>("[data-strand]"));
 
     const cur: Params = { ...EMO.neutral };
@@ -61,7 +63,8 @@ export function AiriAvatar({ state, emotion, getOutputLevel, getInputLevel }: Pr
       // Mouth from real-time output amplitude.
       const speaking = st === "speaking";
       const amp = speaking ? Math.min(1, getOutputLevel() * 7) : 0;
-      mouthOpen += (amp - mouthOpen) * (amp > mouthOpen ? 0.55 : 0.3);
+      if (!speaking) mouthOpen = 0;
+      else mouthOpen += (amp - mouthOpen) * (amp > mouthOpen ? 0.55 : 0.3);
       const listenReact = st === "listening" ? Math.min(1, getInputLevel() * 10) : 0;
 
       // Blink with randomized cadence.
@@ -76,8 +79,8 @@ export function AiriAvatar({ state, emotion, getOutputLevel, getInputLevel }: Pr
         }
       }
 
-      const t = now / 1000;
-      svg.querySelectorAll<SVGGElement>("[data-gaze]").forEach((eye) => eye.setAttribute("transform", `translate(${Math.sin(t * .45) * 1.3} ${Math.cos(t * .3) * .6})`));
+      const t = reducedMotion ? 0 : now / 1000;
+      gaze.forEach((eye) => eye.setAttribute("transform", `translate(${Math.sin(t * .45) * 1.3} ${Math.cos(t * .3) * .6})`));
       const breathe = Math.sin(t * 1.6);
       body.setAttribute("transform", `translate(0 ${breathe * 1.6}) scale(1 ${1 + breathe * 0.004})`);
       const headRot = cur.head + Math.sin(t * 0.7) * 1.2 + (speaking ? Math.sin(t * 5) * mouthOpen * 1.2 : 0) + listenReact * 1.5;
@@ -114,22 +117,22 @@ export function AiriAvatar({ state, emotion, getOutputLevel, getInputLevel }: Pr
   }, [getOutputLevel, getInputLevel]);
 
   return (
-    <svg ref={root} viewBox="35 0 330 475" className="airi-avatar" role="img" aria-label="Airi">
+    <svg ref={root} viewBox="35 0 330 475" className="mahiru-avatar" role="img" aria-label="Mahiru">
       <defs>
         <linearGradient id="hoodie" x1="0" y1="0" x2="1" y2="1">
-          <stop stopColor="var(--airi-cloth-trim)" /><stop offset=".5" stopColor="var(--airi-cloth)" /><stop offset="1" stopColor="var(--airi-cloth-shade)" />
+          <stop stopColor="var(--mahiru-cloth-trim)" /><stop offset=".5" stopColor="var(--mahiru-cloth)" /><stop offset="1" stopColor="var(--mahiru-cloth-shade)" />
         </linearGradient>
         <linearGradient id="hair" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="var(--airi-hair-light)" />
-          <stop offset="1" stopColor="var(--airi-hair)" />
+          <stop offset="0" stopColor="var(--mahiru-hair-light)" />
+          <stop offset="1" stopColor="var(--mahiru-hair)" />
         </linearGradient>
         <radialGradient id="iris" cx="0.5" cy="0.35" r="0.7">
-          <stop offset="0" stopColor="var(--airi-iris-light)" />
-          <stop offset="1" stopColor="var(--airi-iris)" />
+          <stop offset="0" stopColor="var(--mahiru-iris-light)" />
+          <stop offset="1" stopColor="var(--mahiru-iris)" />
         </radialGradient>
         <radialGradient id="rim" cx="0.5" cy="0.3" r="0.8">
-          <stop offset="0.7" stopColor="var(--airi-glow)" stopOpacity="0" />
-          <stop offset="1" stopColor="var(--airi-glow)" stopOpacity="0.25" />
+          <stop offset="0.7" stopColor="var(--mahiru-glow)" stopOpacity="0" />
+          <stop offset="1" stopColor="var(--mahiru-glow)" stopOpacity="0.25" />
         </radialGradient>
       </defs>
 
@@ -139,41 +142,41 @@ export function AiriAvatar({ state, emotion, getOutputLevel, getInputLevel }: Pr
           <path d="M118 165 Q94 66 200 60 Q306 66 282 165 Q300 245 292 315 Q287 395 350 463 Q290 481 259 421 Q229 463 200 443 Q171 463 141 421 Q110 481 50 463 Q113 395 108 315 Q100 245 118 165Z" fill="url(#hair)" />
         </g>
         <g>
-          <path d="M180 276 L220 276 L224 327 L176 327Z" fill="var(--airi-skin-shade)" />
-          <path d="M132 306 Q147 286 177 299 L200 325 L223 299 Q253 286 268 306 L278 355 L122 355Z" fill="var(--airi-cloth-shade)" />
-          <path d="M45 475 Q51 356 127 321 Q154 307 174 317 L200 337 L226 317 Q246 307 273 321 Q349 356 355 475Z" fill="url(#hoodie)" stroke="var(--airi-cloth-shade)" strokeWidth="2" />
-          <path d="M132 306 Q123 331 164 351 L196 340 Q167 322 170 306 M268 306 Q277 331 236 351 L204 340 Q233 322 230 306" fill="var(--airi-cloth-trim)" stroke="var(--airi-cloth-shade)" strokeWidth="2" />
-          <path d="M184 344 Q178 377 184 405 M216 344 Q222 377 216 405" fill="none" stroke="var(--airi-cloth-shade)" strokeWidth="3" strokeLinecap="round" />
-          <path d="M89 373 Q111 410 106 475 M311 373 Q289 410 294 475 M146 458 Q200 434 254 458" fill="none" stroke="var(--airi-cloth-shade)" strokeWidth="2" opacity=".6" />
+          <path d="M180 276 L220 276 L224 327 L176 327Z" fill="var(--mahiru-skin-shade)" />
+          <path d="M132 306 Q147 286 177 299 L200 325 L223 299 Q253 286 268 306 L278 355 L122 355Z" fill="var(--mahiru-cloth-shade)" />
+          <path d="M45 475 Q51 356 127 321 Q154 307 174 317 L200 337 L226 317 Q246 307 273 321 Q349 356 355 475Z" fill="url(#hoodie)" stroke="var(--mahiru-cloth-shade)" strokeWidth="2" />
+          <path d="M132 306 Q123 331 164 351 L196 340 Q167 322 170 306 M268 306 Q277 331 236 351 L204 340 Q233 322 230 306" fill="var(--mahiru-cloth-trim)" stroke="var(--mahiru-cloth-shade)" strokeWidth="2" />
+          <path d="M184 344 Q178 377 184 405 M216 344 Q222 377 216 405" fill="none" stroke="var(--mahiru-cloth-shade)" strokeWidth="3" strokeLinecap="round" />
+          <path d="M89 373 Q111 410 106 475 M311 373 Q289 410 294 475 M146 458 Q200 434 254 458" fill="none" stroke="var(--mahiru-cloth-shade)" strokeWidth="2" opacity=".6" />
         </g>
 
         <g data-part="head">
           {/* face */}
-          <path d="M140 170 Q140 252 200 288 Q260 252 260 170 Q260 105 200 105 Q140 105 140 170Z" fill="var(--airi-skin)" />
+          <path d="M140 170 Q140 252 200 288 Q260 252 260 170 Q260 105 200 105 Q140 105 140 170Z" fill="var(--mahiru-skin)" />
           <g data-part="blush" opacity="0.3">
-            <ellipse cx="160" cy="228" rx="14" ry="6" fill="var(--airi-blush)" />
-            <ellipse cx="240" cy="228" rx="14" ry="6" fill="var(--airi-blush)" />
+            <ellipse cx="160" cy="228" rx="14" ry="6" fill="var(--mahiru-blush)" />
+            <ellipse cx="240" cy="228" rx="14" ry="6" fill="var(--mahiru-blush)" />
           </g>
           {/* eyes */}
           {[170, 230].map((cx, i) => (
             <g key={cx} data-part={i ? "eyeR" : "eyeL"}>
-              <ellipse cx={cx} cy="198" rx="19" ry="21" fill="var(--airi-eye-white)" />
+              <ellipse cx={cx} cy="198" rx="19" ry="21" fill="var(--mahiru-eye-white)" />
               <g data-gaze>
               <ellipse cx={cx} cy="200" rx="14" ry="18" fill="url(#iris)" />
-              <ellipse cx={cx} cy="202" rx="5.5" ry="8" fill="var(--airi-pupil)" />
-              <circle cx={cx - 5} cy="192" r="4.5" fill="var(--airi-eye-white)" />
-              <circle cx={cx + 5} cy="208" r="2" fill="var(--airi-eye-white)" opacity="0.8" />
-              <ellipse cx={cx + 2} cy="211" rx="7" ry="3" fill="var(--airi-iris-light)" opacity=".8" />
+              <ellipse cx={cx} cy="202" rx="5.5" ry="8" fill="var(--mahiru-pupil)" />
+              <circle cx={cx - 5} cy="192" r="4.5" fill="var(--mahiru-eye-white)" />
+              <circle cx={cx + 5} cy="208" r="2" fill="var(--mahiru-eye-white)" opacity="0.8" />
+              <ellipse cx={cx + 2} cy="211" rx="7" ry="3" fill="var(--mahiru-iris-light)" opacity=".8" />
               </g>
               <path
                 d={i ? `M${cx - 19} 184 Q${cx} 172 ${cx + 21} 186 L${cx + 18} 181 Q${cx} 168 ${cx - 18} 180Z` : `M${cx + 19} 184 Q${cx} 172 ${cx - 21} 186 L${cx - 18} 181 Q${cx} 168 ${cx + 18} 180Z`}
-                fill="var(--airi-line)"
+                fill="var(--mahiru-line)"
               />
             </g>
           ))}
-          <path d="M199 222 L201 226" stroke="var(--airi-skin-shade)" strokeWidth="1.5" strokeLinecap="round" />
-          <path data-part="mouth" d="" fill="var(--airi-mouth)" />
-          <path data-part="lip" d="" stroke="var(--airi-line)" strokeWidth="2" fill="none" strokeLinecap="round" />
+          <path d="M199 222 L201 226" stroke="var(--mahiru-skin-shade)" strokeWidth="1.5" strokeLinecap="round" />
+          <path data-part="mouth" d="" fill="var(--mahiru-mouth)" />
+          <path data-part="lip" d="" stroke="var(--mahiru-line)" strokeWidth="2" fill="none" strokeLinecap="round" />
 
           {/* bangs */}
           <path d="M136 165 Q132 92 200 84 Q268 92 264 165 Q250 120 200 112 Q150 120 136 165Z" fill="url(#hair)" />
@@ -195,19 +198,19 @@ export function AiriAvatar({ state, emotion, getOutputLevel, getInputLevel }: Pr
           <g data-strand="258,140">
             <path d="M258 130 Q296 216 279 304 Q258 380 301 456 Q234 410 249 330 Q260 263 244 196 Q248 160 258 130Z" fill="url(#hair)" />
           </g>
-          <path d="M134 190 Q120 269 141 327 M266 190 Q280 269 259 327" fill="none" stroke="var(--airi-hair-light)" strokeWidth="3" opacity=".7" />
+          <path d="M134 190 Q120 269 141 327 M266 190 Q280 269 259 327" fill="none" stroke="var(--mahiru-hair-light)" strokeWidth="3" opacity=".7" />
           {/* ahoge */}
           <g data-strand="200,70">
-            <path d="M198 72 Q190 40 214 30 Q200 46 206 72Z" fill="var(--airi-hair-light)" />
+            <path d="M198 72 Q190 40 214 30 Q200 46 206 72Z" fill="var(--mahiru-hair-light)" />
           </g>
           {/* Original wide-brim hat; animated with the head. */}
-          <path d="M113 98 Q127 33 153 24 Q200 5 247 24 Q273 33 287 98Z" fill="var(--airi-hat)" stroke="var(--airi-hat-edge)" strokeWidth="2" />
-          <path d="M121 77 Q200 93 279 77 L284 98 Q200 119 116 98Z" fill="var(--airi-hat-band)" />
-          <path d="M57 100 Q85 80 132 95 Q200 111 268 95 Q315 80 343 100 Q349 110 320 119 Q200 144 80 119 Q51 110 57 100Z" fill="var(--airi-hat)" stroke="var(--airi-hat-edge)" strokeWidth="2" />
+          <path d="M113 98 Q127 33 153 24 Q200 5 247 24 Q273 33 287 98Z" fill="var(--mahiru-hat)" stroke="var(--mahiru-hat-edge)" strokeWidth="2" />
+          <path d="M121 77 Q200 93 279 77 L284 98 Q200 119 116 98Z" fill="var(--mahiru-hat-band)" />
+          <path d="M57 100 Q85 80 132 95 Q200 111 268 95 Q315 80 343 100 Q349 110 320 119 Q200 144 80 119 Q51 110 57 100Z" fill="var(--mahiru-hat)" stroke="var(--mahiru-hat-edge)" strokeWidth="2" />
           {/* hair clip */}
-          <path d="M238 120 l14 -6 l2 6 l-14 6Z" fill="var(--airi-accent)" />
-          <path data-part="browL" d="" stroke="var(--airi-hair)" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.85" />
-          <path data-part="browR" d="" stroke="var(--airi-hair)" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.85" />
+          <path d="M238 120 l14 -6 l2 6 l-14 6Z" fill="var(--mahiru-accent)" />
+          <path data-part="browL" d="" stroke="var(--mahiru-hair)" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.85" />
+          <path data-part="browR" d="" stroke="var(--mahiru-hair)" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.85" />
         </g>
       </g>
     </svg>

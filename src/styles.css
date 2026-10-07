@@ -143,30 +143,30 @@
   }
 }
 
-/* ---------- Airi ---------- */
+/* ---------- Mahiru ---------- */
 :root {
   --stage: oklch(0 0 0);
   --stage-fg: oklch(0.85 0 0);
   --stage-dim: oklch(0.45 0 0);
-  --airi-skin: oklch(0.94 0.03 60);
-  --airi-skin-shade: oklch(0.84 0.05 45);
-  --airi-blush: oklch(0.75 0.12 15);
-  --airi-hair: oklch(0.73 0.12 78);
-  --airi-hair-light: oklch(0.94 0.09 90);
-  --airi-iris: oklch(0.58 0.14 63);
-  --airi-iris-light: oklch(0.89 0.15 90);
-  --airi-pupil: oklch(0.28 0.06 52);
-  --airi-eye-white: oklch(0.99 0 0);
-  --airi-line: oklch(0.25 0.03 30);
-  --airi-mouth: oklch(0.48 0.12 20);
-  --airi-cloth: oklch(0.95 0.014 90);
-  --airi-cloth-shade: oklch(0.78 0.025 85);
-  --airi-hat: oklch(0.12 0 0);
-  --airi-hat-edge: oklch(0.3 0 0);
-  --airi-hat-band: oklch(0.23 0 0);
-  --airi-cloth-trim: oklch(0.96 0.005 260);
-  --airi-accent: oklch(0.7 0.16 20);
-  --airi-glow: oklch(0.7 0.1 220);
+  --mahiru-skin: oklch(0.94 0.03 60);
+  --mahiru-skin-shade: oklch(0.84 0.05 45);
+  --mahiru-blush: oklch(0.75 0.12 15);
+  --mahiru-hair: oklch(0.73 0.12 78);
+  --mahiru-hair-light: oklch(0.94 0.09 90);
+  --mahiru-iris: oklch(0.58 0.14 63);
+  --mahiru-iris-light: oklch(0.89 0.15 90);
+  --mahiru-pupil: oklch(0.28 0.06 52);
+  --mahiru-eye-white: oklch(0.99 0 0);
+  --mahiru-line: oklch(0.25 0.03 30);
+  --mahiru-mouth: oklch(0.48 0.12 20);
+  --mahiru-cloth: oklch(0.95 0.014 90);
+  --mahiru-cloth-shade: oklch(0.78 0.025 85);
+  --mahiru-hat: oklch(0.12 0 0);
+  --mahiru-hat-edge: oklch(0.3 0 0);
+  --mahiru-hat-band: oklch(0.23 0 0);
+  --mahiru-cloth-trim: oklch(0.96 0.005 260);
+  --mahiru-accent: oklch(0.7 0.16 20);
+  --mahiru-glow: oklch(0.7 0.1 220);
   --st-connecting: oklch(0.7 0.02 260);
   --st-listening: oklch(0.75 0.14 160);
   --st-thinking: oklch(0.8 0.13 85);
@@ -180,8 +180,8 @@ html, body { background: var(--stage); overscroll-behavior: none; }
   display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
   -webkit-tap-highlight-color: transparent; user-select: none;
 }
-.airi-avatar { height: 98dvh; width: auto; max-width: 100vw; animation: airi-in 1.2s ease-out both; }
-@keyframes airi-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.mahiru-avatar { height: auto; width: min(68dvh, calc(60vw - 48px)); max-height: 98dvh; animation: mahiru-in 1.2s ease-out both; }
+@keyframes mahiru-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 
 .gate { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 1.25rem; padding: 2rem; text-align: center; }
 .gate-mic {
@@ -227,7 +227,7 @@ html, body { background: var(--stage); overscroll-behavior: none; }
     background: var(--stage); color: var(--stage-dim);
   }
   .rotate-icon { width: 2.75rem; height: 2.75rem; animation: rotate-cue 2.4s ease-in-out infinite; }
-  .rotate-prompt ~ .airi-avatar,
+  .rotate-prompt ~ .mahiru-avatar,
   .rotate-prompt ~ .camera-preview,
   .rotate-prompt ~ .status-dot,
   .rotate-prompt ~ .status-retry { visibility: hidden; }
@@ -235,7 +235,7 @@ html, body { background: var(--stage); overscroll-behavior: none; }
 
 @media (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {
   .stage { height: 100dvh; padding-inline: env(safe-area-inset-left) env(safe-area-inset-right); }
-  .airi-avatar { height: 100dvh; max-height: 100dvh; max-width: 100vw; }
+  .mahiru-avatar { width: min(68dvh, calc(60vw - 48px)); max-height: 98dvh; }
   .status-dot, .status-retry { bottom: max(.5rem, env(safe-area-inset-bottom)); left: max(1rem, env(safe-area-inset-left)); translate: none; }
 }
 
@@ -255,5 +255,5 @@ html, body { background: var(--stage); overscroll-behavior: none; }
 .stage .gate-btn { background: var(--stage); }
 .stage .status-retry { background: var(--stage); height: auto; }
 @media (prefers-reduced-motion: reduce) {
-  .airi-avatar, .rotate-icon, .status-dot, .gate-mic { animation: none; }
+  .mahiru-avatar, .rotate-icon, .status-dot, .gate-mic { animation: none; }
 }

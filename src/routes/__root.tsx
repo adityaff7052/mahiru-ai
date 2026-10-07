@@ -77,12 +77,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Airi" },
-      { name: "description", content: "Airi voice companion" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { title: "Mahiru" },
+      { name: "description", content: "Mahiru voice companion" },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Airi" },
-      { property: "og:description", content: "Airi voice companion" },
+      { property: "og:title", content: "Mahiru" },
+      { property: "og:description", content: "Mahiru voice companion" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
