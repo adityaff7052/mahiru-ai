@@ -1,4 +1,5 @@
 # Mahiru updates
+- [ ] Upgrade only the avatar artwork and smooth expressions; verify tests and desktop/landscape framing.
 - [x] Rename product and all user-facing labels to Mahiru.
 - [x] Rework animated SVG avatar and landscape composition.
 - [x] Combined media permission gate and private camera preview.
