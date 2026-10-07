@@ -32,15 +32,5 @@ export function buildLiveConfig(modality: { AUDIO: Modality }): LiveConnectConfi
   };
 }
 
-export type MahiruEmotion = "neutral" | "happy" | "surprised" | "thinking" | "concerned" | "amused";
-
-/** Lightweight keyword heuristic over hidden output transcription. */
-export function inferEmotion(text: string): MahiruEmotion | null {
-  const t = text.toLowerCase();
-  if (/(haha|hehe|lol|funny|silly|ha!|teas)/.test(t)) return "amused";
-  if (/(wow|whoa|really\?|no way|seriously|what\?!|oh!)/.test(t)) return "surprised";
-  if (/(sorry|oh no|that's hard|tough|sad|worried|are you okay|hurt)/.test(t)) return "concerned";
-  if (/(hmm|let me think|maybe|i wonder|perhaps|well\.\.\.)/.test(t)) return "thinking";
-  if (/(yay|great|love|awesome|glad|happy|nice|amazing|perfect|!)/.test(t)) return "happy";
-  return null;
-}
+// Compatibility export: expression interpretation belongs to the visual layer.
+export { inferEmotion, type MahiruEmotion } from "./avatar-expression";
