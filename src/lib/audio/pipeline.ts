@@ -1,5 +1,5 @@
 /**
- * Web Audio pipeline for Airi.
+ * Web Audio pipeline for Mahiru.
  *
  *  Mic ──► MediaStreamSource ──► AudioWorklet (downsample → Int16 PCM 16 kHz, 40 ms chunks) ──► onChunk
  *  Model PCM 24 kHz ──► AudioBufferSource queue ──► Gain ──► Analyser (mouth amplitude) ──► speakers

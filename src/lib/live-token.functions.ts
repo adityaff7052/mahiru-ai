@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { LIVE_MODEL, buildLiveConfig } from "./airi-config";
+import { LIVE_MODEL, LIVE_API_VERSION, buildLiveConfig } from "./mahiru-config";
 
 /**
  * Mints a short-lived, single-use Gemini ephemeral token locked to the Live
@@ -10,7 +10,7 @@ export const mintLiveToken = createServerFn({ method: "POST" }).handler(async ()
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured on the server.");
 
   const { GoogleGenAI, Modality } = await import("@google/genai");
-  const ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: "v1beta" } });
+  const ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: LIVE_API_VERSION } });
   const now = Date.now();
 
   const token = await ai.authTokens.create({
@@ -20,10 +20,9 @@ export const mintLiveToken = createServerFn({ method: "POST" }).handler(async ()
       newSessionExpireTime: new Date(now + 60_000).toISOString(),
       liveConnectConstraints: {
         model: LIVE_MODEL,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        config: buildLiveConfig(Modality) as any,
+        config: { ...buildLiveConfig(Modality), sessionResumption: {} },
       },
-      httpOptions: { apiVersion: "v1beta" },
+      httpOptions: { apiVersion: LIVE_API_VERSION },
     },
   });
 
