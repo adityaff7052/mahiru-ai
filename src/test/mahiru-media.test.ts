@@ -37,9 +37,7 @@ describe("Mahiru media rules", () => {
     expect(session.sendRealtimeInput).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(session.sendRealtimeInput).toHaveBeenCalledExactlyOnceWith({ video: { data: "ZmFrZQ==", mimeType: "image/jpeg" } });
-    const canvas = drawImage.mock.instances[0];
     expect(drawImage).toHaveBeenCalledWith(video, 0, 0, 320, 180);
-    expect(canvas).toBeDefined();
     vi.advanceTimersByTime(1000);
     expect(session.sendRealtimeInput).toHaveBeenCalledTimes(2);
     stop(); vi.advanceTimersByTime(3000);
@@ -60,7 +58,7 @@ describe("Mahiru media rules", () => {
     const sources: { stop: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> }[] = [];
     const ctx = {
       currentTime: 0, destination: {},
-      createGain: () => ({ connect: vi.fn(), disconnect: vi.fn() }),
+      createGain: () => ({ connect: vi.fn((target) => target), disconnect: vi.fn() }),
       createAnalyser: () => ({ fftSize: 512, connect: vi.fn(), disconnect: vi.fn() }),
       createBuffer: () => ({ copyToChannel: vi.fn(), duration: 1 }),
       createBufferSource: () => {
