@@ -111,7 +111,10 @@ export function MahiruAvatar({ state, emotion, getOutputLevel, getInputLevel }: 
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
-    return (
+    return () => cancelAnimationFrame(raf);
+  }, [getOutputLevel, getInputLevel]);
+
+  return (
     <svg ref={root} viewBox="35 0 330 475" className="mahiru-avatar" role="img" aria-label="Mahiru">
       <defs>
         <linearGradient id="hair" x1="0" y1="0" x2=".85" y2="1">
