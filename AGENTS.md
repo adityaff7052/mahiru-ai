@@ -15,6 +15,7 @@
 - Audio I/O lives in src/lib/audio/pipeline.ts; session logic in src/hooks/use-mahiru-live.ts. Why: separation of transport and UI.
 - Transcripts are kept in refs only, never rendered. Why: voice-only product requirement.
 - Avatar is SVG animated via rAF attribute writes. Why: per-frame mouth/blink without React re-renders.
+- Avatar expression mapping lives in a presentation-only module, re-exported by the shared config. Why: expand visual emotions without altering Live transport or token configuration.
 
 - Camera capture is isolated in src/lib/video-pipeline.ts and started only by a ready Live session. Why: enforce frame limits and session cleanup without persisting media.
 - Use the shared typed Live configuration and API version for tokens and connections; this SDK requires v1alpha for ephemeral tokens. Why: prevent mismatched constrained-session protocols.
