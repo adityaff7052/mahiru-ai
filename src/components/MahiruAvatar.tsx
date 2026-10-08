@@ -61,9 +61,9 @@ export function MahiruAvatar(props: Props) {
         eye(344,351,114,69,current.eye * lid); eye(550,327,114,72,current.eye * lid);
         // Brow accents, cheeks and tear layers combine with raster eye articulation.
         ctx.strokeStyle = color('hair'); ctx.lineWidth = 2.5; ctx.globalAlpha = .5;
-        for (const [x,y] of [[367,327],[555,303]]) { ctx.beginPath(); ctx.moveTo(x,y-current.brow); ctx.quadraticCurveTo(x+35,y-10-current.brow-current.tilt,x+75,y-4-current.brow); ctx.stroke(); }
+        for (const [x,y] of [[367,327],[555,303]] as const) { ctx.beginPath(); ctx.moveTo(x,y-current.brow); ctx.quadraticCurveTo(x+35,y-10-current.brow-current.tilt,x+75,y-4-current.brow); ctx.stroke(); }
         ctx.globalAlpha = 1;
-        for (const [x,y] of [[374,438],[612,425]]) {
+        for (const [x,y] of [[374,438],[612,425]] as const) {
           const blush = ctx.createRadialGradient(x,y,0,x,y,45); blush.addColorStop(0,color('blush')); blush.addColorStop(1,'transparent');
           ctx.globalAlpha = current.blush * .32; ctx.fillStyle = blush; ctx.fillRect(x-45,y-45,90,90);
           ctx.globalAlpha = current.tears * .75; ctx.fillStyle = color('tear');
@@ -76,7 +76,7 @@ export function MahiruAvatar(props: Props) {
           ctx.fillStyle = color('mouth'); ctx.beginPath(); ctx.moveTo(475,510-smile*.2); ctx.quadraticCurveTo(510,516+smile,545,506-smile*.2); ctx.quadraticCurveTo(515,514+open+smile,475,510-smile*.2); ctx.fill();
           if (mouth > .35) { ctx.fillStyle = color('eye-white'); ctx.beginPath(); ctx.ellipse(510,512,18,2.5,0,0,Math.PI); ctx.fill(); }
         } else { ctx.beginPath(); ctx.moveTo(475,511-smile*.2); ctx.quadraticCurveTo(510,513+smile,545,507-smile*.2); ctx.stroke(); }
-        ctx.restore(); el.dataset.mouthOpen = String(mouth); el.dataset.emotion = emotion;
+        ctx.restore(); el.dataset["mouthOpen"] = String(mouth); el.dataset["emotion"] = emotion;
       }
       raf = requestAnimationFrame(frame);
     };
