@@ -36,6 +36,9 @@ export function useMahiruLive() {
   const attentiveRef = useRef(false);
   const stopPresenceRef = useRef<(() => void) | null>(null);
   const mutedRef = useRef(false);
+  const readyRef = useRef(false);
+  const readyCallbackRef = useRef<(() => void) | null>(null);
+  const cameraOnRef = useRef(true);
   const commitMemory = useCallback(() => {
     memoryRef.current = appendMemory(memoryRef.current, 'user', userTranscriptRef.current);
     memoryRef.current = appendMemory(memoryRef.current, 'model', transcriptRef.current);
@@ -195,7 +198,7 @@ export function useMahiruLive() {
     timersRef.current.forEach((timer) => { clearTimeout(timer); clearInterval(timer); }); timersRef.current = [];
     stopFramesRef.current?.(); stopFramesRef.current = null;
     try { sessionRef.current?.close(); } catch { /* Already closed. */ }
-    sessionRef.current = null;
+    sessionRef.current = null; readyRef.current = false; readyCallbackRef.current = null;
     micRef.current?.stop(); micRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop()); streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
@@ -234,7 +237,7 @@ export function useMahiruLive() {
         if (closingRef.current || stateRef.current === "error") return;
         // Capture chunks are dropped until connect resolves with an open session.
         const session = sessionRef.current;
-        if (!session && !MOCK) return;
+        if ((!session || !readyRef.current) && !MOCK) return;
         if (mic.level > .025) presenceRef.current.cancel(Date.now());
         if (stateRef.current === "speaking" && mic.level > 0.035) interrupt();
         if (MOCK) return;
@@ -272,5 +275,12 @@ export function useMahiruLive() {
     try { memoryRef.current = resetConversationMemory(localStorage); } catch { memoryRef.current = emptyMemory(); }
   }, []);
   const setMuted = useCallback((muted: boolean) => { mutedRef.current = muted; if (muted) { presenceRef.current.cancel(Date.now()); interrupt(); } }, [interrupt]);
-  return { state, emotion, error, videoRef, start, stop, retry, getOutputLevel, getInputLevel, clearMemory, setMuted, mock: MOCK };
+  /** Camera off stops frame streaming; audio conversation continues. */
+  const setCameraActive = useCallback((active: boolean) => {
+    cameraOnRef.current = active;
+    stopFramesRef.current?.(); stopFramesRef.current = null;
+    const session = sessionRef.current;
+    if (active && session && readyRef.current) stopFramesRef.current = startVideoFrames(session, () => videoRef.current, (reason) => fail("Camera frame", reason));
+  }, [fail]);
+  return { setCameraActive, state, emotion, error, videoRef, start, stop, retry, getOutputLevel, getInputLevel, clearMemory, setMuted, mock: MOCK };
 }
