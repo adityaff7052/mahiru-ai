@@ -116,6 +116,8 @@ export function useMahiruLive() {
     let opened = false;
     let ready = false;
     let ended = false;
+    let readyHandled = false;
+    readyRef.current = false; readyCallbackRef.current = null;
     try {
       const { GoogleGenAI, Modality } = await import("@google/genai");
       const { token } = await mintLiveToken();
@@ -128,7 +130,7 @@ export function useMahiruLive() {
           onopen: () => { opened = true; },
           onmessage: (message) => {
             if (generation === generationRef.current && !closingRef.current) {
-              if (message.setupComplete) ready = true;
+              if (message.setupComplete) { ready = true; readyCallbackRef.current?.(); }
               handleMessage(message);
             }
           },
@@ -157,15 +159,29 @@ export function useMahiruLive() {
           },
         },
       });
-      if (closingRef.current || generation !== generationRef.current || ended || !opened || !ready) { session.close(); return; }
+      if (closingRef.current || generation !== generationRef.current || ended) { session.close(); return; }
+      // Keep the session immediately; setupComplete may arrive after connect() resolves.
       sessionRef.current = session;
       suppressOutputRef.current = false;
-      stopFramesRef.current = startVideoFrames(session, () => videoRef.current, (reason) => fail("Camera frame", reason));
-      set("listening");
-      // Prefill history without generating an unsolicited startup greeting.
-      if (!resuming && memoryRef.current.turns.length) session.sendClientContent({
-        turns: memoryRef.current.turns.map(turn => ({ role: turn.role, parts: [{ text: turn.text }] })), turnComplete: false,
-      });
+      const onReady = () => {
+        if (readyHandled || generation !== generationRef.current || closingRef.current) return;
+        readyHandled = true; readyRef.current = true;
+        if (cameraOnRef.current) stopFramesRef.current = startVideoFrames(session, () => videoRef.current, (reason) => fail("Camera frame", reason));
+        set("listening");
+        // Prefill history silently (turnComplete false): no scripted greeting.
+        if (!resuming && memoryRef.current.turns.length) session.sendClientContent({
+          turns: memoryRef.current.turns.map(turn => ({ role: turn.role, parts: [{ text: turn.text }] })), turnComplete: false,
+        });
+      };
+      readyCallbackRef.current = onReady;
+      if (ready) onReady();
+      else timersRef.current.push(window.setTimeout(() => {
+        if (!readyHandled && generation === generationRef.current && !closingRef.current) {
+          try { session.close(); } catch { /* closed */ }
+          sessionRef.current = null;
+          fail("Live startup", "Session setup timed out");
+        }
+      }, 12000));
     } catch (reason) {
       if (!closingRef.current && generation === generationRef.current) fail("Live startup", reason);
     }
