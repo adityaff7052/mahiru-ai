@@ -77,7 +77,7 @@ export function MahiruAvatar(props: Props) {
         ctx.translate(-512 + gazeX * .6, -1100 + gazeY * .4 - listening * 2);
         ctx.drawImage(layers.base, 0, 0);
         // Closed-eye artwork: blinking plus sleepy/laughing/happy narrowing.
-        const closed = Math.min(1, Math.max(lid, 1 - current.eye));
+        const closed = Math.min(1, Math.max(lid, (0.85 - current.eye) / 0.5));
         if (closed > .01) { ctx.globalAlpha = closed; ctx.drawImage(layers.blink, 0, 0); }
         if (current.tears > .01) { ctx.globalAlpha = Math.min(1, current.tears); ctx.drawImage(layers.teary, 0, 0); }
         // Mouth: rounded vowel shape for small amplitude, open smile for louder/cheerful speech.
