@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, RotateCw, Smartphone } from "lucide-react";
+import { Mic, MoreVertical, RotateCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { hasRequiredMedia } from "@/lib/video-pipeline";
+import { ENTRY_CODE_LENGTH, isEntryCodeValid } from "@/lib/entry-gate";
 import { MahiruAvatar } from "@/components/MahiruAvatar";
 import { useMahiruLive } from "@/hooks/use-mahiru-live";
 
@@ -20,12 +25,41 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Phase = "gate" | "requesting" | "denied" | "main";
+type Phase = "locked" | "gate" | "requesting" | "denied" | "main";
+type CameraMode = "preview" | "hidden" | "off";
+
+function EntryGate({ onUnlock }: { onUnlock: () => void }) {
+  const [code, setCode] = useState("");
+  const [wrong, setWrong] = useState(false);
+  const submit = (value: string) => {
+    if (isEntryCodeValid(value)) onUnlock();
+    else { setWrong(true); setCode(""); }
+  };
+  return (
+    <main className="stage">
+      <form className="gate" onSubmit={(e) => { e.preventDefault(); submit(code); }}>
+        <p className="gate-text">Enter the code to open this website</p>
+        <InputOTP
+          maxLength={ENTRY_CODE_LENGTH} value={code} inputMode="numeric" pattern="^[0-9]*$" autoFocus
+          aria-label="Website entry code"
+          onChange={(v) => { setCode(v); setWrong(false); if (v.length === ENTRY_CODE_LENGTH) submit(v); }}
+        >
+          <InputOTPGroup>
+            {Array.from({ length: ENTRY_CODE_LENGTH }, (_, i) => <InputOTPSlot key={i} index={i} className="entry-slot" />)}
+          </InputOTPGroup>
+        </InputOTP>
+        <p className="gate-hint" role="alert">{wrong ? "Wrong code. Please try again." : "\u00a0"}</p>
+      </form>
+    </main>
+  );
+}
 
 function Index() {
-  const [phase, setPhase] = useState<Phase>("gate");
+  const [phase, setPhase] = useState<Phase>("locked");
   const live = useMahiruLive();
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  const [cameraMode, setCameraMode] = useState<CameraMode>("preview");
+  const [cameraError, setCameraError] = useState(false);
   const requesting = useRef(false);
   const grantedStream = useRef<MediaStream | null>(null);
   useEffect(() => () => {
@@ -33,14 +67,14 @@ function Index() {
   }, []);
   useEffect(() => {
     const video = live.videoRef.current;
-    if (!video || !stream) return;
-    video.srcObject = stream;
+    if (!video || !videoStream) return;
+    video.srcObject = videoStream;
     void video.play().catch((error: unknown) => console.warn("[mahiru] Preview playback", error));
     return () => { video.srcObject = null; };
-  }, [stream, live.videoRef]);
+  }, [videoStream, live.videoRef, phase]);
 
-  // Mic is requested only here, from a user gesture (also unlocks audio playback).
-  const requestMic = useCallback(async () => {
+  // Mic + camera are requested only here, from a user gesture (also unlocks audio playback).
+  const requestMedia = useCallback(async () => {
     if (requesting.current) return;
     requesting.current = true;
     setPhase("requesting");
@@ -60,11 +94,40 @@ function Index() {
       return;
     }
     grantedStream.current = media;
-    setStream(media);
+    setVideoStream(new MediaStream(media.getVideoTracks()));
     setPhase("main");
     requesting.current = false;
     await live.start(media);
   }, [live.start]);
+
+  const changeCamera = useCallback(async (mode: CameraMode) => {
+    const media = grantedStream.current;
+    if (!media) return;
+    setCameraError(false);
+    if (mode === "off") {
+      media.getVideoTracks().forEach((track) => { track.stop(); media.removeTrack(track); });
+      live.setCameraActive(false);
+      setVideoStream(null);
+      setCameraMode("off");
+      return;
+    }
+    if (!media.getVideoTracks().some((t) => t.readyState === "live")) {
+      try {
+        const cam = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 360 } },
+        });
+        cam.getVideoTracks().forEach((track) => media.addTrack(track));
+        setVideoStream(new MediaStream(cam.getVideoTracks()));
+      } catch {
+        setCameraError(true);
+        return; // Stay in camera-off mode; voice keeps running.
+      }
+    }
+    live.setCameraActive(true);
+    setCameraMode(mode);
+  }, [live.setCameraActive]);
+
+  if (phase === "locked") return <EntryGate onUnlock={() => setPhase("gate")} />;
 
   if (phase !== "main") {
     return (
@@ -73,12 +136,12 @@ function Index() {
           {phase === "denied" ? (
             <>
               <p className="gate-text">Microphone and camera access are needed to talk with Mahiru.</p>
-              <Button variant="ghost" className="gate-btn" onClick={requestMic}>
+              <Button variant="ghost" className="gate-btn" onClick={requestMedia}>
                 <RotateCw className="size-4" /> Try again
               </Button>
             </>
           ) : (
-            <Button variant="ghost" className="gate-mic" onClick={requestMic} disabled={phase === "requesting"} aria-label="Enable microphone and camera">
+            <Button variant="ghost" className="gate-mic" onClick={requestMedia} disabled={phase === "requesting"} aria-label="Enable microphone and camera">
               <Mic className="size-7" />
             </Button>
           )}
@@ -100,7 +163,25 @@ function Index() {
         getOutputLevel={live.getOutputLevel}
         getInputLevel={live.getInputLevel}
       />
-      <video ref={live.videoRef} className="camera-preview" autoPlay muted playsInline aria-label="Your live camera preview" />
+      <video
+        ref={live.videoRef} className="camera-preview" data-visible={cameraMode === "preview"}
+        autoPlay muted playsInline aria-label="Your live camera preview" aria-hidden={cameraMode !== "preview"}
+      />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="camera-menu" aria-label="Camera options" data-error={cameraError}>
+            <MoreVertical className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" side="top" className="camera-menu-content">
+          <DropdownMenuRadioGroup value={cameraMode} onValueChange={(v) => void changeCamera(v as CameraMode)}>
+            <DropdownMenuRadioItem value="hidden">Camera on, preview off</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="preview">Camera on, preview on</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="off">Camera off</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+          {cameraError && <p className="camera-menu-error">Camera access was blocked.</p>}
+        </DropdownMenuContent>
+      </DropdownMenu>
       {live.state === "error" ? (
         <Button variant="ghost" className="status-retry" onClick={live.retry} aria-label="Reconnect" title={live.error}>
           <RotateCw className="size-4" />
