@@ -36,6 +36,9 @@ export function useMahiruLive() {
   const attentiveRef = useRef(false);
   const stopPresenceRef = useRef<(() => void) | null>(null);
   const mutedRef = useRef(false);
+  const readyRef = useRef(false);
+  const readyCallbackRef = useRef<(() => void) | null>(null);
+  const cameraOnRef = useRef(true);
   const commitMemory = useCallback(() => {
     memoryRef.current = appendMemory(memoryRef.current, 'user', userTranscriptRef.current);
     memoryRef.current = appendMemory(memoryRef.current, 'model', transcriptRef.current);
@@ -116,6 +119,8 @@ export function useMahiruLive() {
     let opened = false;
     let ready = false;
     let ended = false;
+    let readyHandled = false;
+    readyRef.current = false; readyCallbackRef.current = null;
     try {
       const { GoogleGenAI, Modality } = await import("@google/genai");
       const { token } = await mintLiveToken();
@@ -128,7 +133,7 @@ export function useMahiruLive() {
           onopen: () => { opened = true; },
           onmessage: (message) => {
             if (generation === generationRef.current && !closingRef.current) {
-              if (message.setupComplete) ready = true;
+              if (message.setupComplete) { ready = true; readyCallbackRef.current?.(); }
               handleMessage(message);
             }
           },
@@ -157,15 +162,29 @@ export function useMahiruLive() {
           },
         },
       });
-      if (closingRef.current || generation !== generationRef.current || ended || !opened || !ready) { session.close(); return; }
+      if (closingRef.current || generation !== generationRef.current || ended) { session.close(); return; }
+      // Keep the session immediately; setupComplete may arrive after connect() resolves.
       sessionRef.current = session;
       suppressOutputRef.current = false;
-      stopFramesRef.current = startVideoFrames(session, () => videoRef.current, (reason) => fail("Camera frame", reason));
-      set("listening");
-      // Prefill history without generating an unsolicited startup greeting.
-      if (!resuming && memoryRef.current.turns.length) session.sendClientContent({
-        turns: memoryRef.current.turns.map(turn => ({ role: turn.role, parts: [{ text: turn.text }] })), turnComplete: false,
-      });
+      const onReady = () => {
+        if (readyHandled || generation !== generationRef.current || closingRef.current) return;
+        readyHandled = true; readyRef.current = true;
+        if (cameraOnRef.current) stopFramesRef.current = startVideoFrames(session, () => videoRef.current, (reason) => fail("Camera frame", reason));
+        set("listening");
+        // Prefill history silently (turnComplete false): no scripted greeting.
+        if (!resuming && memoryRef.current.turns.length) session.sendClientContent({
+          turns: memoryRef.current.turns.map(turn => ({ role: turn.role, parts: [{ text: turn.text }] })), turnComplete: false,
+        });
+      };
+      readyCallbackRef.current = onReady;
+      if (ready) onReady();
+      else timersRef.current.push(window.setTimeout(() => {
+        if (!readyHandled && generation === generationRef.current && !closingRef.current) {
+          try { session.close(); } catch { /* closed */ }
+          sessionRef.current = null;
+          fail("Live startup", "Session setup timed out");
+        }
+      }, 12000));
     } catch (reason) {
       if (!closingRef.current && generation === generationRef.current) fail("Live startup", reason);
     }
@@ -179,7 +198,7 @@ export function useMahiruLive() {
     timersRef.current.forEach((timer) => { clearTimeout(timer); clearInterval(timer); }); timersRef.current = [];
     stopFramesRef.current?.(); stopFramesRef.current = null;
     try { sessionRef.current?.close(); } catch { /* Already closed. */ }
-    sessionRef.current = null;
+    sessionRef.current = null; readyRef.current = false; readyCallbackRef.current = null;
     micRef.current?.stop(); micRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop()); streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
@@ -218,7 +237,7 @@ export function useMahiruLive() {
         if (closingRef.current || stateRef.current === "error") return;
         // Capture chunks are dropped until connect resolves with an open session.
         const session = sessionRef.current;
-        if (!session && !MOCK) return;
+        if ((!session || !readyRef.current) && !MOCK) return;
         if (mic.level > .025) presenceRef.current.cancel(Date.now());
         if (stateRef.current === "speaking" && mic.level > 0.035) interrupt();
         if (MOCK) return;
@@ -256,5 +275,12 @@ export function useMahiruLive() {
     try { memoryRef.current = resetConversationMemory(localStorage); } catch { memoryRef.current = emptyMemory(); }
   }, []);
   const setMuted = useCallback((muted: boolean) => { mutedRef.current = muted; if (muted) { presenceRef.current.cancel(Date.now()); interrupt(); } }, [interrupt]);
-  return { state, emotion, error, videoRef, start, stop, retry, getOutputLevel, getInputLevel, clearMemory, setMuted, mock: MOCK };
+  /** Camera off stops frame streaming; audio conversation continues. */
+  const setCameraActive = useCallback((active: boolean) => {
+    cameraOnRef.current = active;
+    stopFramesRef.current?.(); stopFramesRef.current = null;
+    const session = sessionRef.current;
+    if (active && session && readyRef.current) stopFramesRef.current = startVideoFrames(session, () => videoRef.current, (reason) => fail("Camera frame", reason));
+  }, [fail]);
+  return { setCameraActive, state, emotion, error, videoRef, start, stop, retry, getOutputLevel, getInputLevel, clearMemory, setMuted, mock: MOCK };
 }

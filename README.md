@@ -23,3 +23,17 @@ Mic → AudioWorklet (downsample to 16 kHz Int16, 40 ms chunks) → Live session
 Camera frames are JPEG 320×180, sent at most once per second after Live setup completes. No recording, file storage, or visible transcripts. Both permissions are required; portrait phones hide the character and preview without stopping granted media.
 
 The installed SDK requires `v1alpha` for ephemeral tokens and constrained Live connections; both use the shared API version. A socket opening alone is not readiness: microphone/video streaming waits for `setupComplete`. The model remains exactly `gemini-3.1-flash-live-preview`.
+
+## Entry code
+A 4-digit code screen appears before the microphone/camera request. It is a casual
+exhibition gate checked in the browser only — it does **not** secure the source code,
+assets, or server endpoints. Change it in `src/lib/entry-gate.ts`.
+
+## Camera menu
+The ⋮ button at the camera corner switches between: camera on + preview off (frames still
+sent to Gemini), camera on + preview on, and camera off (no frames; voice continues).
+
+## Voice
+Gemini prebuilt voice `Leda`, configured in `src/lib/mahiru-config.ts` (used by both the
+server token constraints and the browser connection). Gemini usage is billed/limited by
+your Google account; the app does not promise unlimited free usage.

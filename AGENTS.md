@@ -19,3 +19,6 @@
 
 - Camera capture is isolated in src/lib/video-pipeline.ts and started only by a ready Live session. Why: enforce frame limits and session cleanup without persisting media.
 - Use the shared typed Live configuration and API version for tokens and connections; this SDK requires v1alpha for ephemeral tokens. Why: prevent mismatched constrained-session protocols.
+
+- The entry code gate is client-only (src/lib/entry-gate.ts). Why: casual exhibition gate, not security.
+- Live session is stored on connect; frames/mic start on setupComplete with a 12s timeout. Why: setupComplete can arrive after connect resolves.

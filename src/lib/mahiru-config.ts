@@ -15,7 +15,7 @@ Rules:
 - If the user interrupts you, stop and listen — respond to what they just said.
 - Do not claim the service is unlimited or free forever.`;
 
-export const MAHIRU_VOICE = "Kore";
+export const MAHIRU_VOICE = "Leda";
 
 /** Live session config shared by the token constraints (server) and connect call (browser). */
 export const LIVE_API_VERSION = "v1alpha";
