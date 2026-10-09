@@ -7,4 +7,5 @@
 - [x] JPEG camera frames and Live lifecycle/error handling.
 - [x] Verify seven tests, automatic compilation checks, preview, orientation, and available Gemini credentials.
 - [x] Save GEMINI_API_KEY as a server-side secret (new AQ. or legacy AIza key formats accepted).
+- [x] Session-ready race fix, Leda voice, 7052 entry gate, camera menu, shoulders-up layered avatar (29 tests, build).
 - [ ] Verify a real continuous Gemini conversation, live camera understanding, and audible barge-in. Requires a human microphone/camera conversation; automated checks use simulated media. Outside this avatar-only upgrade.
