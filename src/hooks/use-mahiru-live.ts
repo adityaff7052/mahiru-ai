@@ -7,7 +7,6 @@ import { mintLiveToken } from "@/lib/live-token.functions";
 import { startVideoFrames } from "@/lib/video-pipeline";
 import { appendMemory, emptyMemory, restoreMemory, saveMemory, resetConversationMemory } from '@/lib/conversation-memory';
 import { PresencePolicy } from '@/lib/presence-policy';
-import { startPresenceDetector } from '@/lib/presence-detector';
 
 export type MahiruState = "idle" | "connecting" | "listening" | "thinking" | "speaking" | "interrupted" | "error";
 const MOCK = import.meta.env["VITE_MAHIRU_MOCK"] === "true";
