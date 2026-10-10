@@ -3,9 +3,9 @@ import { isEntryCodeValid } from "@/lib/entry-gate";
 import { MAHIRU_VOICE } from "@/lib/mahiru-config";
 
 describe("entry gate", () => {
-  it("accepts exactly 7052", () => expect(isEntryCodeValid("7052")).toBe(true));
+  it("accepts exactly 8917", () => expect(isEntryCodeValid("8917")).toBe(true));
   it("rejects other codes", () => {
-    for (const code of ["", "705", "70520", "1234", "2507"]) expect(isEntryCodeValid(code)).toBe(false);
+    for (const code of ["", "705", "70520", "1234", "2507", "7052"]) expect(isEntryCodeValid(code)).toBe(false);
   });
 });
 
