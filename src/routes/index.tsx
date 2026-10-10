@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MoreVertical, RotateCw, Smartphone } from "lucide-react";
+import { Eye, EyeOff, Mic, MoreVertical, RotateCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -31,6 +30,7 @@ type CameraMode = "preview" | "hidden" | "off";
 function EntryGate({ onUnlock }: { onUnlock: () => void }) {
   const [code, setCode] = useState("");
   const [wrong, setWrong] = useState(false);
+  const [shown, setShown] = useState(false);
   const submit = (value: string) => {
     if (isEntryCodeValid(value)) onUnlock();
     else { setWrong(true); setCode(""); }
@@ -39,15 +39,20 @@ function EntryGate({ onUnlock }: { onUnlock: () => void }) {
     <main className="stage">
       <form className="gate" onSubmit={(e) => { e.preventDefault(); submit(code); }}>
         <p className="gate-text">Enter the code to open this website</p>
-        <InputOTP
-          maxLength={ENTRY_CODE_LENGTH} value={code} inputMode="numeric" pattern="^[0-9]*$" autoFocus
-          aria-label="Website entry code"
-          onChange={(v) => { setCode(v); setWrong(false); if (v.length === ENTRY_CODE_LENGTH) submit(v); }}
-        >
-          <InputOTPGroup>
-            {Array.from({ length: ENTRY_CODE_LENGTH }, (_, i) => <InputOTPSlot key={i} index={i} className="entry-slot" />)}
-          </InputOTPGroup>
-        </InputOTP>
+        <div className="entry-field">
+          <input
+            type={shown ? "text" : "password"} inputMode="numeric" pattern="[0-9]*" maxLength={ENTRY_CODE_LENGTH}
+            autoComplete="off" autoFocus value={code} aria-label="Website entry code" className="entry-input"
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, "").slice(0, ENTRY_CODE_LENGTH);
+              setCode(v); setWrong(false);
+              if (v.length === ENTRY_CODE_LENGTH) submit(v);
+            }}
+          />
+          <button type="button" className="entry-toggle" onClick={() => setShown((s) => !s)} aria-label={shown ? "Hide code" : "Show code"}>
+            {shown ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </button>
+        </div>
         <p className="gate-hint" role="alert">{wrong ? "Wrong code. Please try again." : "\u00a0"}</p>
       </form>
     </main>

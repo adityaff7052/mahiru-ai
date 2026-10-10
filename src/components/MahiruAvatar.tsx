@@ -10,7 +10,7 @@ import type { MahiruState } from '@/hooks/use-mahiru-live';
 interface Props { state: MahiruState; emotion: MahiruEmotion; getOutputLevel: () => number; getInputLevel: () => number }
 
 /** Shoulders-up crop of the 1024×1536 artwork. */
-const CROP_Y = 90, W = 1024, H = 1040;
+const CROP_Y = 0, W = 1024, H = 1120;
 type Region = { x: number; y: number; rx: number; ry: number };
 const EYES: Region = { x: 505, y: 380, rx: 200, ry: 72 };
 const MOUTH: Region = { x: 505, y: 515, rx: 80, ry: 48 };
