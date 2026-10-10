@@ -1,4 +1,5 @@
-export const PRESENCE_DEFAULTS = { enabled: true, sustainedMs: 7000, cooldownMs: 120000, speechQuietMs: 6000, sampleMs: 1000 };
+/** Disabled: camera presence must never cause unsolicited speech. */
+export const PRESENCE_DEFAULTS = { enabled: false, sustainedMs: 7000, cooldownMs: 120000, speechQuietMs: 6000, sampleMs: 1000 };
 export class PresencePolicy {
   private since: number | null = null;
   private lastUtterance = -Infinity;

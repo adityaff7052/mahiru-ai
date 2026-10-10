@@ -14,7 +14,7 @@
 - Live config/persona lives in src/lib/mahiru-config.ts and is used both for token constraints and the connect call. Why: one source of truth.
 - Audio I/O lives in src/lib/audio/pipeline.ts; session logic in src/hooks/use-mahiru-live.ts. Why: separation of transport and UI.
 - Transcripts are kept in refs only, never rendered. Why: voice-only product requirement.
-- Avatar is SVG animated via rAF attribute writes. Why: per-frame mouth/blink without React re-renders.
+- Camera presence detection must never trigger speech; Mahiru speaks only in response to the user. Why: product rule against unsolicited remarks.
 - Avatar expression mapping lives in a presentation-only module, re-exported by the shared config. Why: expand visual emotions without altering Live transport or token configuration.
 
 - Camera capture is isolated in src/lib/video-pipeline.ts and started only by a ready Live session. Why: enforce frame limits and session cleanup without persisting media.
