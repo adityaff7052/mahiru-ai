@@ -210,20 +210,7 @@ export function useMahiruLive() {
   const start = useCallback(async (stream: MediaStream) => {
     stop(); closingRef.current = false; streamRef.current = stream;
     try { memoryRef.current = restoreMemory(localStorage); } catch { /* Storage disabled. */ }
-    const presenceGeneration = generationRef.current;
-    void startPresenceDetector(() => videoRef.current, attention => { attentiveRef.current = attention; }).then(dispose => {
-      if (closingRef.current || presenceGeneration > generationRef.current) dispose();
-      else stopPresenceRef.current = dispose;
-    }).catch(() => { attentiveRef.current = false; console.warn('[mahiru] Local attention unavailable; proactive speech disabled.'); });
-    timersRef.current.push(window.setInterval(() => {
-      const ctx = ctxRef.current, stream = streamRef.current, session = sessionRef.current;
-      const userSpeaking = (micRef.current?.level ?? 0) > .025;
-      const available = Boolean(session && stateRef.current === 'listening' && ctx?.state === 'running' && !mutedRef.current && !document.hidden && stream?.getAudioTracks().some(track => track.enabled && !track.muted));
-      if (presenceRef.current.update(Date.now(), attentiveRef.current, available, userSpeaking) && session) {
-        try { session.sendClientContent({ turns: [{ role: 'user', parts: [{ text: 'Local attention event: the user has been quietly facing the camera for several seconds. If appropriate, offer one brief, varied, friendly non-romantic check-in using our current conversation and visible context. Do not claim exact eye contact or invent observations. Stop if the user speaks.' }] }], turnComplete: true }); }
-        catch (reason) { console.warn('[mahiru] Check-in could not be sent'); }
-      }
-    }, 500));
+    // Camera presence never triggers speech: Mahiru only responds to the user's voice.
     setError(""); set("connecting");
     retriesRef.current = 0; turnDoneRef.current = true; suppressOutputRef.current = false;
     try {

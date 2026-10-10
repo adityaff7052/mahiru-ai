@@ -14,9 +14,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Mahiru — Voice Companion" },
-      { name: "description", content: "Talk with Mahiru, a witty anime-style AI companion. Voice only." },
+      { name: "description", content: "Talk with Mahiru, a calm, helpful anime-style voice assistant. Voice only." },
       { property: "og:title", content: "Mahiru — Voice Companion" },
-      { property: "og:description", content: "Talk with Mahiru, a witty anime-style AI companion. Voice only." },
+      { property: "og:description", content: "Talk with Mahiru, a calm, helpful anime-style voice assistant. Voice only." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
