@@ -16,6 +16,7 @@
 - Transcripts are kept in refs only, never rendered. Why: voice-only product requirement.
 - Camera presence detection must never trigger speech; Mahiru speaks only in response to the user. Why: product rule against unsolicited remarks.
 - Avatar expression mapping lives in a presentation-only module, re-exported by the shared config. Why: expand visual emotions without altering Live transport or token configuration.
+- Avatar artwork masks and hair pivots live in `src/lib/avatar-rig.ts`, with motion helpers in `avatar-motion.ts`; parts are derived at load time from Mahiru's raster artwork. Why: keep the procedural rig separate from media and avoid duplicate character art.
 
 - Camera capture is isolated in src/lib/video-pipeline.ts and started only by a ready Live session. Why: enforce frame limits and session cleanup without persisting media.
 - Use the shared typed Live configuration and API version for tokens and connections; this SDK requires v1alpha for ephemeral tokens. Why: prevent mismatched constrained-session protocols.
