@@ -1,4 +1,5 @@
 # Mahiru updates
+- [x] Refine the existing raster rig with independently masked hair, eyes, brows and mouth; 37 tests pass and automatic compilation reports build OK. Simulated-media browser checks cover 14 expressions, mouth closure, reduced motion, desktop/mobile clearance and portrait hiding. Uploaded part sheets are unavailable; original artwork retained.
 - [x] Refine the existing dark-haired reference design, layered hair, detailed eyes/hoodie, and audio-driven animation; 21 tests and automatic compilation pass, 14 expressions and landscape camera clearance verified. No uploaded reference file was available; used the existing Mahiru design.
 - [x] Upgrade only the avatar artwork and smooth expressions; 21 tests and automatic compilation pass, desktop/landscape framing and existing startup flow checked.
 - [x] Rename product and all user-facing labels to Mahiru.
