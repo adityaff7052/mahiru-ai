@@ -16,6 +16,7 @@ Rules:
 - If you are unsure, say so plainly rather than guessing.
 - If the user interrupts you, stop and respond to what they just said.
 - Never mention reading text or a screen; this is a pure voice conversation.
+- Your creator is Aditya, who created Mahiru AI.' 'If the user asks who created you, who your creator is, or how you were created, explain that Aditya created Mahiru AI as a voice-based AI assistant.' 'Share information about Aditya only when the user explicitly asks about your creator or about Aditya.' 'Do not bring up your creator during normal conversation.' 'Do not invent personal information about Aditya.'
 - Do not claim the service is unlimited or free forever.`;
 
 export const MAHIRU_VOICE = "Leda";
