@@ -57,6 +57,10 @@ export function useMahiruLive() {
   const turnDoneRef = useRef(true);
   const suppressOutputRef = useRef(false);
 
+  // True while Mahiru's answer is being generated or played.
+  // Captured microphone audio is discarded while this lock is active.
+  const assistantOutputActiveRef = useRef(false);
+
   const transcriptRef = useRef("");
   const userTranscriptRef = useRef("");
   const memoryRef = useRef(emptyMemory());
@@ -121,6 +125,8 @@ export function useMahiruLive() {
   const interrupt = useCallback(() => {
     playerRef.current?.flush();
     suppressOutputRef.current = true;
+    assistantOutputActiveRef.current = false;
+    turnDoneRef.current = true;
 
     commitMemory();
     presenceRef.current.cancel(Date.now());
@@ -148,12 +154,18 @@ export function useMahiruLive() {
 
       if (sc.interrupted) {
         // Do not flush queued audio when an interruption event arrives.
-        // The server may have stopped generating, but queued audio can finish.
+        // Keep ignoring microphone input until any queued answer audio drains.
         turnDoneRef.current = true;
         suppressOutputRef.current = false;
         commitMemory();
 
-        set(playerRef.current?.playing ? "speaking" : "listening");
+        const isPlaying = Boolean(playerRef.current?.playing);
+
+        if (!isPlaying) {
+          assistantOutputActiveRef.current = false;
+        }
+
+        set(isPlaying ? "speaking" : "listening");
         return;
       }
 
@@ -170,6 +182,10 @@ export function useMahiruLive() {
       }
 
       if (sc.outputTranscription?.text) {
+        // Lock microphone input as soon as Mahiru's answer text arrives.
+        assistantOutputActiveRef.current = true;
+        turnDoneRef.current = false;
+
         transcriptRef.current = (
           transcriptRef.current + sc.outputTranscription.text
         ).slice(-1200);
@@ -187,7 +203,10 @@ export function useMahiruLive() {
           !suppressOutputRef.current
         ) {
           try {
+            // Also lock input when audio arrives before its transcript.
+            assistantOutputActiveRef.current = true;
             turnDoneRef.current = false;
+
             playerRef.current?.enqueue(base64ToFloat32(audio.data));
             set("speaking");
           } catch (reason) {
@@ -201,7 +220,10 @@ export function useMahiruLive() {
         suppressOutputRef.current = false;
         commitMemory();
 
+        // Generation can finish before the queued audio finishes playing.
+        // Only unlock immediately when no answer audio remains.
         if (!playerRef.current?.playing) {
+          assistantOutputActiveRef.current = false;
           set("listening");
         }
       }
@@ -254,8 +276,9 @@ export function useMahiruLive() {
           config: {
             ...baseConfig,
 
-            // Do not interrupt Mahiru's current response when new audio
-            // arrives from the microphone.
+            // Avoid having incoming microphone audio interrupt Mahiru's
+            // current response. The client-side lock below also prevents
+            // new questions from being sent during her answer.
             realtimeInputConfig: {
               ...baseConfig.realtimeInputConfig,
               activityHandling: ActivityHandling.NO_INTERRUPTION,
@@ -445,6 +468,11 @@ export function useMahiruLive() {
     closingRef.current = true;
     generationRef.current++;
 
+    // Do not leave a stale microphone lock when Mahiru restarts.
+    assistantOutputActiveRef.current = false;
+    turnDoneRef.current = true;
+    suppressOutputRef.current = false;
+
     timersRef.current.forEach((timer) => {
       clearTimeout(timer);
       clearInterval(timer);
@@ -467,9 +495,7 @@ export function useMahiruLive() {
     micRef.current?.stop();
     micRef.current = null;
 
-    streamRef.current
-      ?.getTracks()
-      .forEach((track) => track.stop());
+    streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
 
     if (videoRef.current) {
@@ -483,6 +509,7 @@ export function useMahiruLive() {
     ctxRef.current = null;
 
     transcriptRef.current = "";
+    userTranscriptRef.current = "";
     handleRef.current = undefined;
   }, [commitMemory]);
 
@@ -505,6 +532,7 @@ export function useMahiruLive() {
       retriesRef.current = 0;
       turnDoneRef.current = true;
       suppressOutputRef.current = false;
+      assistantOutputActiveRef.current = false;
 
       try {
         const ctx = new AudioContext({ latencyHint: "interactive" });
@@ -518,10 +546,13 @@ export function useMahiruLive() {
         playerRef.current = player;
 
         player.onDrain = () => {
+          // If playback drains before turnComplete, keep the lock.
+          // If generation is already complete, it is safe to listen again.
           if (
             turnDoneRef.current &&
-            stateRef.current === "speaking"
+            assistantOutputActiveRef.current
           ) {
+            assistantOutputActiveRef.current = false;
             set("listening");
           }
         };
@@ -544,11 +575,20 @@ export function useMahiruLive() {
             return;
           }
 
+          // The crucial fix:
+          // Do not send microphone audio to Gemini while Mahiru is answering.
+          // This audio is discarded, not queued for later processing.
+          if (
+            assistantOutputActiveRef.current ||
+            stateRef.current === "speaking"
+          ) {
+            return;
+          }
+
           if (mic.level > 0.025) {
             presenceRef.current.cancel(Date.now());
           }
 
-          // Important: don't stop playback when someone speaks.
           if (MOCK) return;
 
           try {
@@ -578,7 +618,8 @@ export function useMahiruLive() {
                 mic.level > 0.04
               ) {
                 setEmotion("happy");
-                turnDoneRef.current = true;
+                turnDoneRef.current = false;
+                assistantOutputActiveRef.current = true;
 
                 player.enqueue(synthSpeech(2));
                 set("speaking");
